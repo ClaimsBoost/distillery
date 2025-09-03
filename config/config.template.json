@@ -1,0 +1,27 @@
+{
+  "extraction": {
+    "chunk_size": 5000,
+    "chunk_overlap": 500,
+    "model_type": "llama3.1:8b",
+    "embedder_type": "nomic-embed-text",
+    "temperature": 0,
+    "top_p": 0.95,
+    "max_tokens": 2048,
+    "seed": 42,
+    "num_ctx": 8192,
+    "k_chunks": 3,
+    "similarity_threshold": 0.7,
+    "batch_size": 5,
+    "retry_attempts": 3,
+    "use_reranking": false,
+    "use_query_expansion": false,
+    "extract_confidence_scores": false
+  },
+  "ollama": {
+    "base_url": "http://localhost:11434"
+  },
+  "storage": {
+    "base_path": "law-firm-html",
+    "storage_bucket": "law-firm-html"
+  }
+}

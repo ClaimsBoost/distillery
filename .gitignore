@@ -1,0 +1,116 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project specific
+test_results/
+reports/
+logs/
+*.log
+.env.local
+.env.production
+config/.env
+config/*.env
+/tmp/
+*.json.bak
+
+# Evaluation results (but keep test data)
+evaluation/results/extractions/*.json
+evaluation/results/evaluations/*.json
+!evaluation/test_data/*.json
+
+# Local configurations (keep templates)
+config/config.local.json
+config/config.prod.json
+!config/config.template.json
+
+# Ollama debug files
+/tmp/ollama_payload.json
+/tmp/test_*.json
+
+# Claude project files
+CLAUDE.md
+.claude/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Ollama models
+models/
+
+# Local database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+cache/

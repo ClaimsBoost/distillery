@@ -1,0 +1,126 @@
+{
+  "metadata": {
+    "created_at": "2024-01-20T12:00:00",
+    "created_by": "manual_extraction_with_opus",
+    "purpose": "office_location_extraction_evaluation",
+    "total_samples": 10,
+    "notes": "Carefully extracted ground truth office locations from real law firm websites"
+  },
+  "samples": [
+    {
+      "domain": "137law.com",
+      "firm_name": "McCauley & Mattingly",
+      "ground_truth": {
+        "offices": [
+          "100 United Drive, Suite 4D, Versailles, KY 40383"
+        ]
+      }
+    },
+    {
+      "domain": "1800hurt911ga.com",
+      "firm_name": "HURT 911",
+      "ground_truth": {
+        "offices": [
+          "147 North Avenue NE, Atlanta, GA 30308",
+          "1465 Westwood Ave, Atlanta, GA 30310",
+          "5700 Hillandale Dr #190, Lithonia, GA 30058",
+          "2417 Candler Rd., Decatur, GA 30032",
+          "1515 Pennsylvania Ave, McDonough, GA 30253",
+          "7147 Jonesboro Rd. Suite J, Morrow, GA 30260"
+        ]
+      }
+    },
+    {
+      "domain": "216lawyers.com",
+      "firm_name": "Obral, Silk & Pal, LLC",
+      "ground_truth": {
+        "offices": [
+          "55 Public Square #1700, Cleveland, OH 44113",
+          "221 Springside Drive, Suite #100, Akron, OH 44333"
+        ]
+      }
+    },
+    {
+      "domain": "770goodlaw.com",
+      "firm_name": "770 Good Law",
+      "ground_truth": {
+        "offices": [
+          "5495 Jimmy Carter Blvd. Suite B-17, Norcross, GA 30093",
+          "100 Grace Hopper Ln., Suite 3700, Augusta, GA 30901",
+          "7608 GA-85, Riverdale, GA 30274",
+          "2005 S. Milledge Ave Ste. 100, Athens, GA 30605",
+          "100 Main St. SW, Gainesville, GA 30501",
+          "1201 Front Ave, Columbus, GA 30901",
+          "100 Bull St., Savannah, GA 31401",
+          "1305 Hardeman Avenue Suite 200, Macon, GA 31201",
+          "3070 N Main St., Kennesaw, GA 30144",
+          "3243 Iris Dr., Covington, GA 30016"
+        ]
+      }
+    },
+    {
+      "domain": "855mikewins.com",
+      "firm_name": "Mike Morse Injury Law Firm",
+      "ground_truth": {
+        "offices": [
+          "24901 Northwestern Hwy #700, Southfield, MI 48075",
+          "38600 Van Dyke Ave Suite 270, Sterling Heights, MI 48312",
+          "2211 E Jefferson Ave, STE 320, Detroit, MI 48207",
+          "17187 Schaefer Hwy, Detroit, Michigan 48235",
+          "G3500 Flushing Rd Suite 110, Flint, Michigan 48504",
+          "124 Pearl St Suite 404, Ypsilanti, Michigan 48197",
+          "3850 2nd St Suite 256, Wayne, Michigan 48184",
+          "2661 S Lapeer Rd Suite 200, Orion Twp, Michigan 48360",
+          "4422 W Walton Blvd Suite 201, Waterford Twp, MI 48329",
+          "428 S Monroe St Suite 105, Monroe, MI 48161"
+        ]
+      }
+    },
+    {
+      "domain": "888askelliot.com",
+      "firm_name": "Elliot Ifraimoff & Associates, PC",
+      "ground_truth": {
+        "offices": [
+          "118-35 Queens Blvd, Ste 1250, Queens, NY 11375"
+        ]
+      }
+    },
+    {
+      "domain": "a-mlaw.com",
+      "firm_name": "Anselmi Mierzejewski Ruth & Sowle P.C.",
+      "ground_truth": {
+        "offices": [
+          "1750 S. Telegraph Road, Ste 200, Bloomfield Hills, MI 48302"
+        ]
+      }
+    },
+    {
+      "domain": "aaronfergusonlaw.com",
+      "firm_name": "Aaron Ferguson Law",
+      "ground_truth": {
+        "offices": [
+          "3900 Northwoods Dr. Suite #250, Arden Hills, Minnesota 55112"
+        ]
+      }
+    },
+    {
+      "domain": "4grewallaw.com",
+      "firm_name": "Grewal Law",
+      "ground_truth": {
+        "offices": [
+          "2290 Science Parkway, Okemos, MI 48864",
+          "345 E Cady Street, 3rd Floor, Northville, MI 48167"
+        ]
+      }
+    },
+    {
+      "domain": "305hurt.com",
+      "firm_name": "305 HURT",
+      "ground_truth": {
+        "offices": [
+          "1135 Kane Concourse, Second Floor, Bay Harbor Islands, FL 33154"
+        ]
+      }
+    }
+  ]
+}

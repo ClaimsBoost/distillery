@@ -1,0 +1,117 @@
+{
+  "metadata": {
+    "created_at": "2024-12-30T12:00:00",
+    "created_by": "manual_extraction_from_markdown",
+    "purpose": "office_location_extraction_evaluation",
+    "total_samples": 10,
+    "notes": "Extracted office locations from law firm markdown content in Supabase"
+  },
+  "samples": [
+    {
+      "domain": "866attylaw.com",
+      "firm_name": "Frekhtman & Associates",
+      "ground_truth": {
+        "offices": [
+          "60 Bay 26th St., Brooklyn, NY 11214",
+          "20 E 205th St, Bronx, NY 10468",
+          "1791 Fulton St., Brooklyn, NY 11233",
+          "488 Madison Ave, New York, NY 10022",
+          "100-09 Metropolitan Ave, Forest Hills, NY 11375",
+          "30 Broad St., New York, NY 10004",
+          "45 Rockefeller Plaza #2000, New York, NY 10111"
+        ]
+      }
+    },
+    {
+      "domain": "1emslegal.com",
+      "firm_name": "EMS Legal",
+      "ground_truth": {
+        "offices": [
+          "2 West Main Street, Mooresville, IN 46158"
+        ]
+      }
+    },
+    {
+      "domain": "accidentlawfirm.com",
+      "firm_name": "Accident Law Firm",
+      "ground_truth": {
+        "offices": [
+          "2151 SW 42nd Ave, Suite 200, Miami, FL 33134"
+        ]
+      }
+    },
+    {
+      "domain": "abreniolaw.com",
+      "firm_name": "Abrenio Law",
+      "ground_truth": {
+        "offices": [
+          "3925 Chain Bridge Road, Suite 202, Fairfax, VA 22030"
+        ]
+      }
+    },
+    {
+      "domain": "abogadoscentrolegal.com",
+      "firm_name": "Abogados Centro Legal",
+      "ground_truth": {
+        "offices": [
+          "3501 Lorna Rd, Hoover, AL 35216",
+          "3113 SW Ivy Ave #101, Huntsville, AL 35805",
+          "8600 Hwy 431 N, #102, Albertville, AL 35950"
+        ]
+      }
+    },
+    {
+      "domain": "99legal.com",
+      "firm_name": "99 Legal",
+      "ground_truth": {
+        "offices": [
+          "12811 Kenwood Ln Suite 112, Fort Myers, FL",
+          "13621 Tamiami Trail, North Port, FL"
+        ]
+      }
+    },
+    {
+      "domain": "844seemike.com",
+      "firm_name": "Mike Macak Law",
+      "ground_truth": {
+        "offices": [
+          "31 W Downer Pl, Suite 405, Aurora, IL 60506",
+          "4809 N Ravenswood Ave, Suite 419, Chicago, IL 60640",
+          "310 N Hammes Ave Suite 301C, Joliet, IL 60435",
+          "535 S Washington St Suite 27, Naperville, IL 60540",
+          "1301 W 22nd St Suite 711, Oak Brook, IL 60523",
+          "1209 S 4th St Suite C, Springfield, IL 62703"
+        ]
+      }
+    },
+    {
+      "domain": "alabamapersonalinjury.com",
+      "firm_name": "Lewis & Feldman, LLC",
+      "ground_truth": {
+        "offices": [
+          "2112 11th Ave. S. Suite 542, Birmingham, AL 35205"
+        ]
+      }
+    },
+    {
+      "domain": "6254law.com",
+      "firm_name": "6254 Law",
+      "ground_truth": {
+        "offices": [
+          "1015 Elm Street Suite 202, Manchester, NH 03101"
+        ]
+      }
+    },
+    {
+      "domain": "advocatelawoffices.com",
+      "firm_name": "West Sixth Law",
+      "ground_truth": {
+        "offices": [
+          "1 W. 6th St., Madison, IN 47250",
+          "1015 Third Street, Suite G, Columbus, IN 47201",
+          "471 W Main St, Suite 200, Louisville, KY 40202"
+        ]
+      }
+    }
+  ]
+}
