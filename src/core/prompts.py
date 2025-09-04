@@ -83,6 +83,37 @@ class PromptTemplates:
         
         return prompt
     
+    def get_law_firm_confirmation_prompt(self, content: str) -> str:
+        """
+        Generate prompt for law firm confirmation extraction
+        
+        Args:
+            content: The text content to extract from
+        
+        Returns:
+            Formatted extraction prompt
+        """
+        # Load the base extraction prompt
+        prompt_template = self._load_file("extraction/law_firm_confirmation.md")
+        
+        # Format the prompt with content
+        prompt = prompt_template.replace("{content}", content)
+        
+        return prompt
+    
+    def get_short_description_prompt(self, content: str) -> str:
+        """
+        Generate prompt for short description extraction (legacy support)
+        
+        Args:
+            content: The text content to extract from
+        
+        Returns:
+            Formatted extraction prompt
+        """
+        # Redirect to law firm confirmation for backward compatibility
+        return self.get_law_firm_confirmation_prompt(content)
+    
     def extract_offices_from_chunks(self, chunks: List[str]) -> str:
         """
         Generate extraction prompt from multiple text chunks
@@ -154,6 +185,109 @@ class PromptTemplates:
             "warnings": warnings,
             "office_count": len(valid_offices),
             "total_offices": len(offices)
+        }
+    
+    def validate_law_firm_confirmation(self, extracted_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate extracted law firm confirmation data
+        
+        Args:
+            extracted_data: The extracted JSON data
+        
+        Returns:
+            Validation results with any errors found
+        """
+        errors = []
+        warnings = []
+        
+        # Check required fields
+        required_fields = ['short_description', 'is_law_firm', 'is_personal_injury_firm']
+        for field in required_fields:
+            if field not in extracted_data:
+                errors.append(f"Missing '{field}' key in extracted data")
+        
+        if errors:
+            return {"valid": False, "errors": errors, "warnings": warnings}
+        
+        # Validate short_description
+        description = extracted_data["short_description"]
+        if not isinstance(description, str):
+            errors.append(f"'short_description' must be a string, got {type(description).__name__}")
+        elif not description or not description.strip():
+            errors.append("Short description is empty or whitespace-only")
+        else:
+            word_count = len(description.split())
+            if word_count > 30:
+                warnings.append(f"Description is {word_count} words (recommended max: 30)")
+            sentence_count = description.count('.') + description.count('!') + description.count('?')
+            if sentence_count > 1:
+                warnings.append("Description appears to contain multiple sentences")
+        
+        # Validate boolean fields
+        if not isinstance(extracted_data['is_law_firm'], bool):
+            errors.append(f"'is_law_firm' must be a boolean, got {type(extracted_data['is_law_firm']).__name__}")
+        
+        if not isinstance(extracted_data['is_personal_injury_firm'], bool):
+            errors.append(f"'is_personal_injury_firm' must be a boolean, got {type(extracted_data['is_personal_injury_firm']).__name__}")
+        
+        # Logical validation
+        if extracted_data.get('is_personal_injury_firm') and not extracted_data.get('is_law_firm'):
+            warnings.append("is_personal_injury_firm is true but is_law_firm is false - this seems inconsistent")
+        
+        return {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "warnings": warnings,
+            "word_count": len(description.split()) if isinstance(description, str) else 0,
+            "description_length": len(description) if isinstance(description, str) else 0
+        }
+    
+    def validate_short_description(self, extracted_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate extracted short description
+        
+        Args:
+            extracted_data: The extracted JSON data
+        
+        Returns:
+            Validation results with any errors found
+        """
+        errors = []
+        warnings = []
+        
+        # Check if short_description key exists
+        if "short_description" not in extracted_data:
+            errors.append("Missing 'short_description' key in extracted data")
+            return {"valid": False, "errors": errors, "warnings": warnings}
+        
+        description = extracted_data["short_description"]
+        
+        # Check if description is a string
+        if not isinstance(description, str):
+            errors.append(f"'short_description' must be a string, got {type(description).__name__}")
+            return {"valid": False, "errors": errors, "warnings": warnings}
+        
+        # Check if it's not empty or just whitespace
+        if not description or not description.strip():
+            errors.append("Short description is empty or whitespace-only")
+            return {"valid": False, "errors": errors, "warnings": warnings}
+        
+        # Check word count (should be under 30 words)
+        word_count = len(description.split())
+        if word_count > 30:
+            warnings.append(f"Description is {word_count} words (recommended max: 30)")
+        
+        # Check for multiple sentences (should be single sentence)
+        sentence_count = description.count('.') + description.count('!') + description.count('?')
+        if sentence_count > 1:
+            warnings.append("Description appears to contain multiple sentences")
+        
+        return {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "warnings": warnings,
+            "word_count": word_count,
+            "description_length": len(description)
         }
     
     def fix_extraction_structure(self, extracted_data: Dict[str, Any]) -> Dict[str, Any]:

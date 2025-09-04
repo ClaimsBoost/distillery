@@ -124,14 +124,14 @@ class DocumentChunker:
         
         # Check if doc_id contains a domain pattern
         if '/' in doc_id:
-            # Might be domain/path format (e.g., "137law_com/index.md")
+            # Might be domain/path format (e.g., "137law.com/index.md")
             potential_domain = doc_id.split('/')[0]
-            if '.' in potential_domain or '_' in potential_domain:
+            if '.' in potential_domain:
                 return potential_domain.lower()
         
         # Check if the whole doc_id looks like a domain
-        if '_' in doc_id and doc_id.count('_') <= 2:
-            # Likely a domain like "137law_com"
+        if '.' in doc_id:
+            # Likely a domain like "137law.com"
             return doc_id.lower()
         
         return None

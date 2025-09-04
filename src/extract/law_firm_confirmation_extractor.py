@@ -1,6 +1,6 @@
 """
-Office location extractor using RAG (Retrieval-Augmented Generation)
-Simplified extraction pipeline focused on office locations
+Law firm confirmation extractor for websites
+Extracts description and classifies if the site is a law firm and handles personal injury
 """
 
 import json
@@ -21,12 +21,12 @@ from ..embed.chunker import DocumentChunker
 logger = logging.getLogger(__name__)
 
 
-class OfficeExtractor(BaseExtractor):
-    """Extracts office locations using RAG with vector search"""
+class LawFirmConfirmationExtractor(BaseExtractor):
+    """Extracts law firm description and classification information using RAG"""
     
     def __init__(self, config: ExtractionConfig, supabase_client: Optional[Client] = None):
         """
-        Initialize office extractor
+        Initialize law firm confirmation extractor
         
         Args:
             config: Extraction configuration
@@ -45,30 +45,34 @@ class OfficeExtractor(BaseExtractor):
         else:
             self.supabase = self.db_conn.get_supabase_client()
         
-        # Initialize LLM with JSON format
-        # Note: LangChain's OllamaLLM doesn't support schema directly,
-        # we'll need to use the Ollama API directly or modify our approach
+        # Initialize LLM with JSON format and token limit
         self.llm = OllamaLLM(
             model=config.model_type,
             base_url=config.ollama_base_url,
             temperature=config.temperature,
             top_p=config.top_p,
-            num_predict=config.max_tokens,
-            format="json"  # Basic JSON format
+            num_predict=100,  # Hard limit for short description
+            format="json"
         )
         
-        # Store schema for direct API calls if needed
-        self.office_schema = {
+        # Store schema for direct API calls
+        self.confirmation_schema = {
             "type": "object",
             "properties": {
-                "offices": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "short_description": {
+                    "type": "string",
+                    "description": "A single sentence describing what the organization does"
+                },
+                "is_law_firm": {
+                    "type": "boolean",
+                    "description": "Whether this is an actual law firm (not a directory or referral service)"
+                },
+                "is_personal_injury_firm": {
+                    "type": "boolean",
+                    "description": "Whether the firm handles personal injury cases"
                 }
             },
-            "required": ["offices"]
+            "required": ["short_description", "is_law_firm", "is_personal_injury_firm"]
         }
         
         # Initialize embeddings
@@ -78,7 +82,6 @@ class OfficeExtractor(BaseExtractor):
         )
         
         # Initialize vector store
-        # Only pass supabase_client if we're not using local database
         if self.db_conn.is_local:
             self.vector_store = create_vector_store(
                 config={'use_local': True},
@@ -98,18 +101,18 @@ class OfficeExtractor(BaseExtractor):
             chunk_overlap=config.chunk_overlap
         )
         
-        logger.info(f"OfficeExtractor initialized with model: {config.model_type}")
+        logger.info(f"LawFirmConfirmationExtractor initialized with model: {config.model_type}")
     
     def extract(self, markdown_content: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
         """
-        Extract office locations from markdown content
+        Extract law firm confirmation from markdown content
         
         Args:
             markdown_content: The markdown text
             metadata: Optional metadata about the document
         
         Returns:
-            Extracted office locations
+            Extracted law firm confirmation data
         """
         start_time = time.time()
         
@@ -145,28 +148,30 @@ class OfficeExtractor(BaseExtractor):
     
     def extract_from_domain(self, domain: str) -> Dict[str, Any]:
         """
-        Extract office locations from all documents in a domain
+        Extract law firm confirmation from homepage/index of a domain
         
         Args:
             domain: Domain name to extract from
         
         Returns:
-            Extracted office locations
+            Extracted law firm confirmation data
         """
+        # For law firm confirmation, we want to focus on homepage content
+        # Use domain/index or domain/home as document ID pattern
         doc_id = f"{domain}/extraction"
-        return self._extract_with_vectors(doc_id, "", search_domain_wide=True)
+        return self._extract_with_vectors(doc_id, "", search_homepage_only=True)
     
     def extract_from_document(self, document_id: str) -> Dict[str, Any]:
         """
-        Extract office locations from a specific document
+        Extract law firm confirmation from a specific document
         
         Args:
             document_id: Document ID to extract from
         
         Returns:
-            Extracted office locations
+            Extracted law firm confirmation data
         """
-        return self._extract_with_vectors(document_id, "", search_domain_wide=False)
+        return self._extract_with_vectors(document_id, "", search_homepage_only=False)
     
     def _create_doc_id(self, metadata: Optional[Dict]) -> str:
         """Create document ID from metadata"""
@@ -180,20 +185,20 @@ class OfficeExtractor(BaseExtractor):
             return str(datetime.now().timestamp())
     
     def _extract_with_vectors(self, doc_id: str, full_content: str, 
-                              search_domain_wide: bool = True) -> Dict[str, Any]:
+                              search_homepage_only: bool = True) -> Dict[str, Any]:
         """
         Perform extraction using vector search
         
         Args:
             doc_id: Document identifier
             full_content: Full document content for fallback
-            search_domain_wide: Whether to search across domain or just document
+            search_homepage_only: Whether to search only homepage content
         
         Returns:
-            Extracted office data
+            Extracted law firm confirmation data
         """
-        # Query for office-related chunks
-        query = "office location street address city state zip phone"
+        # Query for law firm and personal injury related content
+        query = "law firm attorney lawyer legal services personal injury accident compensation practice areas about us"
         
         # Extract domain for filtering
         domain = self.chunker._extract_domain_from_id(doc_id)
@@ -202,36 +207,55 @@ class OfficeExtractor(BaseExtractor):
             # Build search filter
             search_filter = {}
             
-            if search_domain_wide and domain:
+            if domain:
                 import hashlib
                 # Hash domain directly (with periods)
                 domain_id = hashlib.md5(domain.encode()).hexdigest()[:12]
-                search_filter = {'domain_id': domain_id}
-                logger.info(f"Searching across domain: {domain}")
+                
+                if search_homepage_only:
+                    # Try to filter for homepage content specifically
+                    # Look for documents with index, home, or about in the path
+                    search_filter = {
+                        'domain_id': domain_id,
+                        '$or': [
+                            {'document_id': {'$ilike': f'%{domain}/index%'}},
+                            {'document_id': {'$ilike': f'%{domain}/home%'}},
+                            {'document_id': {'$ilike': f'%{domain}/about%'}},
+                            {'document_id': {'$ilike': f'%{domain}/%'}}  # Fallback to any page
+                        ]
+                    }
+                else:
+                    search_filter = {'domain_id': domain_id}
+                
+                logger.info(f"Searching for law firm confirmation in domain: {domain}")
             else:
                 search_filter = {'document_id': doc_id}
                 logger.info(f"Searching document: {doc_id}")
+            
+            # For Supabase/simple stores, use simpler filter
+            if not hasattr(self.vector_store, 'similarity_search_with_metadata_boost'):
+                search_filter = {'domain_id': domain_id} if domain else {'document_id': doc_id}
             
             # Search for relevant chunks
             if hasattr(self.vector_store, 'similarity_search_with_metadata_boost'):
                 # Use boosted search for local store
                 relevant_docs = self.vector_store.similarity_search_with_metadata_boost(
                     query=query,
-                    k=self.config.k_chunks,
+                    k=3,  # Use fewer chunks for description
                     filter=search_filter,
-                    boost_field='contains_addresses'
+                    boost_field='contains_addresses'  # Still use boost but not as relevant
                 )
             else:
                 # Regular search for Supabase
                 relevant_docs = self.vector_store.similarity_search(
                     query=query,
-                    k=self.config.k_chunks,
+                    k=3,  # Use fewer chunks for description
                     filter=search_filter
                 )
             
-            logger.info(f"Retrieved {len(relevant_docs)} relevant chunks")
+            logger.info(f"Retrieved {len(relevant_docs)} relevant chunks for law firm confirmation")
             
-            # Extract text from documents and log full chunks with IDs
+            # Extract text from documents
             chunks = []
             chunk_ids = []
             for i, doc in enumerate(relevant_docs):
@@ -242,35 +266,23 @@ class OfficeExtractor(BaseExtractor):
                 chunk_id = "unknown"
                 if hasattr(doc, 'metadata'):
                     chunk_id = doc.metadata.get('id', doc.metadata.get('chunk_id', 'unknown'))
+                    # Log which document the chunk came from
+                    doc_id_from_chunk = doc.metadata.get('document_id', 'unknown')
+                    logger.debug(f"Chunk {i+1} from document: {doc_id_from_chunk}")
                 chunk_ids.append(chunk_id)
-                
-                # Log FULL chunk content and ID
-                logger.info(f"=== CHUNK {i+1} ID: {chunk_id} ===")
-                logger.info(f"FULL CONTENT:\n{content}")
-                logger.info(f"=== END CHUNK {i+1} ===")
-            
-            # Log retrieval details
-            if relevant_docs and domain:
-                docs_found = set()
-                for doc in relevant_docs:
-                    if hasattr(doc, 'metadata') and 'document_id' in doc.metadata:
-                        docs_found.add(doc.metadata['document_id'])
-                logger.debug(f"Chunks from {len(docs_found)} documents")
             
         except Exception as e:
             logger.warning(f"Vector search failed, using fallback: {str(e)}")
             # Fallback to using full content
-            chunks = self.chunker.chunk_text(full_content)[:self.config.k_chunks]
+            chunks = self.chunker.chunk_text(full_content)[:3]
             chunk_ids = ["fallback_chunk"] * len(chunks)
         
-        # Generate extraction prompt (now separated into system and user parts)
+        # Generate extraction prompt
         system_prompt = self.prompts.get_system_prompt()
-        extraction_prompt = self.prompts.get_office_extraction_prompt("\n---\n".join(chunks))
+        extraction_prompt = self.prompts.get_law_firm_confirmation_prompt("\n---\n".join(chunks))
         
         # Log prompt sizes
-        logger.info(f"System prompt length: {len(system_prompt)} chars")
-        logger.info(f"Extraction prompt length: {len(extraction_prompt)} chars")
-        logger.info(f"Combined prompt length: {len(system_prompt) + len(extraction_prompt)} chars (~{(len(system_prompt) + len(extraction_prompt))//4} tokens)")
+        logger.debug(f"Combined prompt length: {len(system_prompt) + len(extraction_prompt)} chars")
         
         # Call LLM with retry logic
         for attempt in range(self.config.retry_attempts):
@@ -284,87 +296,54 @@ class OfficeExtractor(BaseExtractor):
                     "temperature": self.config.temperature,
                     "top_p": self.config.top_p,
                     "seed": self.config.seed,
-                    "num_ctx": self.config.num_ctx if self.config.num_ctx is not None else 8192,  # Context window in options
+                    "num_ctx": self.config.num_ctx if self.config.num_ctx is not None else 8192,
+                    "num_predict": 150  # Token limit for confirmation response
                 }
                 
                 payload = {
                     "model": self.config.model_type,
-                    "system": system_prompt,  # System prompt now separate
-                    "prompt": extraction_prompt,  # User/extraction prompt only
-                    "format": self.office_schema,
-                    "options": options,  # Model options including num_ctx
+                    "system": system_prompt,
+                    "prompt": extraction_prompt,
+                    "format": self.confirmation_schema,
+                    "options": options,
                     "stream": False,
-                    "keep_alive": 0  # Reset context after each request to prevent cross-domain contamination
+                    "keep_alive": 0
                 }
                 
-                logger.info(f"Setting num_ctx to: {options['num_ctx']} (in options)")
-                
-                # Save payload for debugging
-                with open('/tmp/ollama_payload.json', 'w') as f:
-                    json.dump(payload, f, indent=2)
-                logger.info(f"Saved Ollama payload to /tmp/ollama_payload.json")
-                
-                logger.debug(f"Ollama API payload: {json.dumps(payload, indent=2)[:500]}...")
                 response_obj = requests.post(ollama_url, json=payload)
                 if response_obj.status_code == 200:
                     response_data = response_obj.json()
                     response = response_data['response']
                     
                     # Log token usage
-                    if 'prompt_eval_count' in response_data and 'eval_count' in response_data:
-                        input_tokens = response_data['prompt_eval_count']
+                    if 'eval_count' in response_data:
                         output_tokens = response_data['eval_count']
-                        total_tokens = input_tokens + output_tokens
-                        logger.info(f"Token usage - Input: {input_tokens}, Output: {output_tokens}, Total: {total_tokens}")
+                        logger.debug(f"Output tokens: {output_tokens}")
                 else:
                     # Fallback to LangChain if direct API fails
                     logger.warning(f"Direct Ollama API failed, using LangChain: {response_obj.status_code}")
-                    # Combine prompts for LangChain fallback
                     full_prompt = f"{system_prompt}\n\n{extraction_prompt}"
                     response = self.llm.invoke(full_prompt)
                 
                 # Parse JSON response
-                logger.info(f"Raw LLM response (first 1000 chars): {response[:1000]}")
                 extracted_data = self._parse_llm_response(response)
-                logger.info(f"Parsed data: {extracted_data}")
-                logger.debug(f"Raw LLM response: {response[:500]}")
-                logger.debug(f"Parsed data: {extracted_data}")
+                logger.info(f"Extracted law firm confirmation: {extracted_data}")
                 
-                if extracted_data:
-                    # Validate and fix structure
-                    if hasattr(self.prompts, 'validate_extraction'):
-                        validation = self.prompts.validate_extraction(extracted_data)
-                        if not validation['valid']:
-                            logger.warning(f"Attempt {attempt + 1}: Validation failed - {validation['errors']}")
-                            if hasattr(self.prompts, 'fix_extraction_structure'):
-                                extracted_data = self.prompts.fix_extraction_structure(extracted_data)
-                                validation = self.prompts.validate_extraction(extracted_data)
-                                if validation['valid']:
-                                    logger.info("Successfully fixed structure")
-                                    # Add chunk IDs to the result
-                                    extracted_data['_chunk_ids'] = chunk_ids
-                                    return extracted_data
-                            continue
-                        else:
-                            # Add chunk IDs to the result
-                            extracted_data['_chunk_ids'] = chunk_ids
-                            return extracted_data
-                    else:
-                        # Add chunk IDs to the result
-                        extracted_data['_chunk_ids'] = chunk_ids
-                        return extracted_data
+                if extracted_data and 'short_description' in extracted_data and 'is_law_firm' in extracted_data:
+                    # Add chunk IDs to the result
+                    extracted_data['_chunk_ids'] = chunk_ids
+                    return extracted_data
                     
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
                 if attempt == self.config.retry_attempts - 1:
                     raise
         
-        return {'_chunk_ids': chunk_ids if 'chunk_ids' in locals() else []}
+        return {'short_description': '', 'is_law_firm': False, 'is_personal_injury_firm': False, '_chunk_ids': chunk_ids if 'chunk_ids' in locals() else []}
     
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
         """Parse LLM JSON response"""
         try:
-            # With format="json", Ollama returns valid JSON directly
             return json.loads(response)
         except json.JSONDecodeError as e:
             logger.warning(f"JSON parsing failed: {str(e)}")

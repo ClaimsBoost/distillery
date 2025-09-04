@@ -10,6 +10,7 @@ from datetime import datetime
 
 from ..core.config_manager import ExtractionConfig
 from ..extract import OfficeExtractor
+from ..extract.law_firm_confirmation_extractor import LawFirmConfirmationExtractor
 from ..database import get_database_connection
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,11 @@ class ExtractCommand:
         """
         self.config = config
         self.supabase_client = supabase_client
-        self.extractor = OfficeExtractor(config, supabase_client)
+        self.extractors = {
+            'office_locations': OfficeExtractor(config, supabase_client),
+            'law_firm_confirmation': LawFirmConfirmationExtractor(config, supabase_client),
+            'short_description': LawFirmConfirmationExtractor(config, supabase_client)  # Legacy alias
+        }
     
     def execute(self, targets: List[str], extraction_type: str,
                 is_domain: bool = False) -> Dict[str, Any]:
@@ -37,7 +42,7 @@ class ExtractCommand:
         
         Args:
             targets: List of document IDs or domain names
-            extraction_type: Type of extraction (currently only 'office_locations')
+            extraction_type: Type of extraction ('office_locations' or 'short_description')
             is_domain: Whether targets are domains or documents
         
         Returns:
@@ -47,6 +52,12 @@ class ExtractCommand:
         logger.info(f"Extracting {extraction_type} from {len(targets)} {'domains' if is_domain else 'documents'}")
         logger.info(f"{'='*60}")
         
+        # Get the appropriate extractor
+        if extraction_type not in self.extractors:
+            raise ValueError(f"Unknown extraction type: {extraction_type}. Supported types: {list(self.extractors.keys())}")
+        
+        extractor = self.extractors[extraction_type]
+        
         all_results = []
         
         for target in targets:
@@ -55,11 +66,11 @@ class ExtractCommand:
             if is_domain:
                 # Extract from entire domain
                 logger.info(f"Performing extraction across domain {target}")
-                result = self.extractor.extract_from_domain(target)
+                result = extractor.extract_from_domain(target)
             else:
                 # Extract from specific document
                 logger.info(f"Performing extraction for document {target}")
-                result = self.extractor.extract_from_document(target)
+                result = extractor.extract_from_document(target)
             
             all_results.append({
                 'target': target,

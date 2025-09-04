@@ -93,7 +93,7 @@ class DocumentEmbedder:
         Embed all markdown files for a domain
         
         Args:
-            domain: Domain name (e.g., '137law_com')
+            domain: Domain name (e.g., '137law.com')
             force: Whether to re-embed if already exists
             max_files: Optional limit on number of files
         
@@ -102,11 +102,8 @@ class DocumentEmbedder:
         """
         logger.info(f"Embedding domain: {domain}")
         
-        # Convert domain format for storage (dots to underscores)
-        storage_domain = domain.replace('.', '_')
-        
         # Download all markdown files for the domain
-        files = self.storage.list_files_for_domain(storage_domain)
+        files = self.storage.list_files_for_domain(domain)
         
         if not files:
             logger.error(f"No files found for domain {domain}")
@@ -126,13 +123,13 @@ class DocumentEmbedder:
         # Download and prepare documents
         documents = []
         for filename in files:
-            content = self.storage.download_file(storage_domain, filename)
+            content = self.storage.download_file(domain, filename)
             if content:
                 documents.append({
                     'domain': domain,
                     'filename': filename,
                     'content': content,
-                    'document_id': f"{storage_domain}/{filename}"
+                    'document_id': f"{domain}/{filename}"
                 })
         
         return self._embed_documents(documents, force)

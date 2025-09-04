@@ -66,7 +66,7 @@ class StorageHandler:
         List all markdown files for a specific domain
         
         Args:
-            domain: Domain name (e.g., '137law_com')
+            domain: Domain name (e.g., '137law.com')
         
         Returns:
             List of file names
