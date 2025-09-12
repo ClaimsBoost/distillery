@@ -13,7 +13,7 @@ from langchain_ollama import OllamaLLM, OllamaEmbeddings
 from supabase import Client
 
 from .base_extractor import BaseExtractor
-from ..core.config_manager import ExtractionConfig
+from ..core.settings import get_settings, Settings
 from ..core.prompts import PromptTemplates
 from ..database import create_vector_store, get_database_connection
 from ..embed.chunker import DocumentChunker
@@ -24,16 +24,16 @@ logger = logging.getLogger(__name__)
 class LawFirmConfirmationExtractor(BaseExtractor):
     """Extracts law firm description and classification information using RAG"""
     
-    def __init__(self, config: ExtractionConfig, supabase_client: Optional[Client] = None):
+    def __init__(self, settings: Settings = None, supabase_client: Optional[Client] = None):
         """
         Initialize law firm confirmation extractor
         
         Args:
-            config: Extraction configuration
+            settings: Application settings (uses global if not provided)
             supabase_client: Optional Supabase client
         """
         super().__init__()
-        self.config = config
+        self.settings = settings or get_settings()
         self.prompts = PromptTemplates()
         
         # Get database connection
@@ -47,11 +47,11 @@ class LawFirmConfirmationExtractor(BaseExtractor):
         
         # Initialize LLM with JSON format and token limit
         self.llm = OllamaLLM(
-            model=config.model_type,
-            base_url=config.ollama_base_url,
-            temperature=config.temperature,
-            top_p=config.top_p,
-            num_predict=100,  # Hard limit for short description
+            model=self.settings.extraction.model_type,
+            base_url=self.settings.ollama.base_url,
+            temperature=self.settings.extraction.temperature,
+            top_p=self.settings.extraction.top_p,
+            num_predict=50,  # Small limit for boolean fields only
             format="json"
         )
         
@@ -59,10 +59,6 @@ class LawFirmConfirmationExtractor(BaseExtractor):
         self.confirmation_schema = {
             "type": "object",
             "properties": {
-                "short_description": {
-                    "type": "string",
-                    "description": "A single sentence describing what the organization does"
-                },
                 "is_law_firm": {
                     "type": "boolean",
                     "description": "Whether this is an actual law firm (not a directory or referral service)"
@@ -72,13 +68,13 @@ class LawFirmConfirmationExtractor(BaseExtractor):
                     "description": "Whether the firm handles personal injury cases"
                 }
             },
-            "required": ["short_description", "is_law_firm", "is_personal_injury_firm"]
+            "required": ["is_law_firm", "is_personal_injury_firm"]
         }
         
         # Initialize embeddings
         self.embeddings = OllamaEmbeddings(
-            model=config.embedder_type,
-            base_url=config.ollama_base_url
+            model=self.settings.extraction.embedder_type,
+            base_url=self.settings.ollama.base_url
         )
         
         # Initialize vector store
@@ -97,11 +93,11 @@ class LawFirmConfirmationExtractor(BaseExtractor):
         
         # Initialize chunker for fallback scenarios
         self.chunker = DocumentChunker(
-            chunk_size=config.chunk_size,
-            chunk_overlap=config.chunk_overlap
+            chunk_size=self.settings.extraction.chunk_size,
+            chunk_overlap=self.settings.extraction.chunk_overlap
         )
         
-        logger.info(f"LawFirmConfirmationExtractor initialized with model: {config.model_type}")
+        logger.info(f"LawFirmConfirmationExtractor initialized with model: {self.settings.extraction.model_type}")
     
     def extract(self, markdown_content: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
         """
@@ -285,23 +281,23 @@ class LawFirmConfirmationExtractor(BaseExtractor):
         logger.debug(f"Combined prompt length: {len(system_prompt) + len(extraction_prompt)} chars")
         
         # Call LLM with retry logic
-        for attempt in range(self.config.retry_attempts):
+        for attempt in range(self.settings.extraction.retry_attempts):
             try:
                 # Use direct Ollama API call with schema enforcement
                 import requests
-                ollama_url = f"{self.config.ollama_base_url}/api/generate"
+                ollama_url = f"{self.settings.ollama.base_url}/api/generate"
                 
                 # Build options dict with model parameters
                 options = {
-                    "temperature": self.config.temperature,
-                    "top_p": self.config.top_p,
-                    "seed": self.config.seed,
-                    "num_ctx": self.config.num_ctx if self.config.num_ctx is not None else 8192,
+                    "temperature": self.settings.extraction.temperature,
+                    "top_p": self.settings.extraction.top_p,
+                    "seed": self.settings.extraction.seed,
+                    "num_ctx": self.settings.extraction.num_ctx,
                     "num_predict": 150  # Token limit for confirmation response
                 }
                 
                 payload = {
-                    "model": self.config.model_type,
+                    "model": self.settings.extraction.model_type,
                     "system": system_prompt,
                     "prompt": extraction_prompt,
                     "format": self.confirmation_schema,
@@ -329,17 +325,17 @@ class LawFirmConfirmationExtractor(BaseExtractor):
                 extracted_data = self._parse_llm_response(response)
                 logger.info(f"Extracted law firm confirmation: {extracted_data}")
                 
-                if extracted_data and 'short_description' in extracted_data and 'is_law_firm' in extracted_data:
+                if extracted_data and 'is_law_firm' in extracted_data and 'is_personal_injury_firm' in extracted_data:
                     # Add chunk IDs to the result
                     extracted_data['_chunk_ids'] = chunk_ids
                     return extracted_data
                     
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
-                if attempt == self.config.retry_attempts - 1:
+                if attempt == self.settings.extraction.retry_attempts - 1:
                     raise
         
-        return {'short_description': '', 'is_law_firm': False, 'is_personal_injury_firm': False, '_chunk_ids': chunk_ids if 'chunk_ids' in locals() else []}
+        return {'is_law_firm': False, 'is_personal_injury_firm': False, '_chunk_ids': chunk_ids if 'chunk_ids' in locals() else []}
     
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
         """Parse LLM JSON response"""

@@ -11,7 +11,7 @@ from langchain_ollama import OllamaEmbeddings
 from psycopg2.extras import Json
 
 from ..core.storage_handler import StorageHandler
-from ..core.config_manager import ExtractionConfig
+from ..core.settings import get_settings, Settings
 from ..database import get_database_connection
 from .chunker import DocumentChunker
 
@@ -21,15 +21,15 @@ logger = logging.getLogger(__name__)
 class DocumentEmbedder:
     """Handles document embedding into vector database"""
     
-    def __init__(self, config: ExtractionConfig, storage_config: Optional[Dict] = None):
+    def __init__(self, settings: Settings = None, storage_config: Optional[Dict] = None):
         """
         Initialize document embedder
         
         Args:
-            config: Extraction configuration with embedding settings
+            settings: Application settings (uses global if not provided)
             storage_config: Optional storage configuration
         """
-        self.config = config
+        self.settings = settings or get_settings()
         
         # Initialize storage handler
         if storage_config:
@@ -42,14 +42,14 @@ class DocumentEmbedder:
         
         # Initialize embeddings model
         self.embeddings = OllamaEmbeddings(
-            model=config.embedder_type,
-            base_url=config.ollama_base_url
+            model=self.settings.extraction.embedder_type,
+            base_url=self.settings.ollama.base_url
         )
         
         # Initialize chunker
         self.chunker = DocumentChunker(
-            chunk_size=config.chunk_size,
-            chunk_overlap=config.chunk_overlap
+            chunk_size=self.settings.extraction.chunk_size,
+            chunk_overlap=self.settings.extraction.chunk_overlap
         )
         
         # Get database connection

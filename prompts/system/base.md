@@ -10,6 +10,7 @@ You can extract various types of information including:
 - Contact information
 - Attorney information
 - Practice area details
+- Settlements and case outcomes
 </capabilities>
 
 <general_instructions>

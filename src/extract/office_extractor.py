@@ -13,7 +13,7 @@ from langchain_ollama import OllamaLLM, OllamaEmbeddings
 from supabase import Client
 
 from .base_extractor import BaseExtractor
-from ..core.config_manager import ExtractionConfig
+from ..core.settings import get_settings, Settings
 from ..core.prompts import PromptTemplates
 from ..database import create_vector_store, get_database_connection
 from ..embed.chunker import DocumentChunker
@@ -24,16 +24,16 @@ logger = logging.getLogger(__name__)
 class OfficeExtractor(BaseExtractor):
     """Extracts office locations using RAG with vector search"""
     
-    def __init__(self, config: ExtractionConfig, supabase_client: Optional[Client] = None):
+    def __init__(self, settings: Settings = None, supabase_client: Optional[Client] = None):
         """
         Initialize office extractor
         
         Args:
-            config: Extraction configuration
+            settings: Application settings (uses global if not provided)
             supabase_client: Optional Supabase client
         """
         super().__init__()
-        self.config = config
+        self.settings = settings or get_settings()
         self.prompts = PromptTemplates()
         
         # Get database connection
@@ -49,11 +49,11 @@ class OfficeExtractor(BaseExtractor):
         # Note: LangChain's OllamaLLM doesn't support schema directly,
         # we'll need to use the Ollama API directly or modify our approach
         self.llm = OllamaLLM(
-            model=config.model_type,
-            base_url=config.ollama_base_url,
-            temperature=config.temperature,
-            top_p=config.top_p,
-            num_predict=config.max_tokens,
+            model=self.settings.extraction.model_type,
+            base_url=self.settings.ollama.base_url,
+            temperature=self.settings.extraction.temperature,
+            top_p=self.settings.extraction.top_p,
+            num_predict=self.settings.extraction.max_tokens,
             format="json"  # Basic JSON format
         )
         
@@ -73,8 +73,8 @@ class OfficeExtractor(BaseExtractor):
         
         # Initialize embeddings
         self.embeddings = OllamaEmbeddings(
-            model=config.embedder_type,
-            base_url=config.ollama_base_url
+            model=self.settings.extraction.embedder_type,
+            base_url=self.settings.ollama.base_url
         )
         
         # Initialize vector store
@@ -94,11 +94,11 @@ class OfficeExtractor(BaseExtractor):
         
         # Initialize chunker for fallback scenarios
         self.chunker = DocumentChunker(
-            chunk_size=config.chunk_size,
-            chunk_overlap=config.chunk_overlap
+            chunk_size=self.settings.extraction.chunk_size,
+            chunk_overlap=self.settings.extraction.chunk_overlap
         )
         
-        logger.info(f"OfficeExtractor initialized with model: {config.model_type}")
+        logger.info(f"OfficeExtractor initialized with model: {self.settings.extraction.model_type}")
     
     def extract(self, markdown_content: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
         """
@@ -217,7 +217,7 @@ class OfficeExtractor(BaseExtractor):
                 # Use boosted search for local store
                 relevant_docs = self.vector_store.similarity_search_with_metadata_boost(
                     query=query,
-                    k=self.config.k_chunks,
+                    k=self.settings.extraction.k_chunks,
                     filter=search_filter,
                     boost_field='contains_addresses'
                 )
@@ -225,7 +225,7 @@ class OfficeExtractor(BaseExtractor):
                 # Regular search for Supabase
                 relevant_docs = self.vector_store.similarity_search(
                     query=query,
-                    k=self.config.k_chunks,
+                    k=self.settings.extraction.k_chunks,
                     filter=search_filter
                 )
             
@@ -260,7 +260,7 @@ class OfficeExtractor(BaseExtractor):
         except Exception as e:
             logger.warning(f"Vector search failed, using fallback: {str(e)}")
             # Fallback to using full content
-            chunks = self.chunker.chunk_text(full_content)[:self.config.k_chunks]
+            chunks = self.chunker.chunk_text(full_content)[:self.settings.extraction.k_chunks]
             chunk_ids = ["fallback_chunk"] * len(chunks)
         
         # Generate extraction prompt (now separated into system and user parts)
@@ -273,22 +273,22 @@ class OfficeExtractor(BaseExtractor):
         logger.info(f"Combined prompt length: {len(system_prompt) + len(extraction_prompt)} chars (~{(len(system_prompt) + len(extraction_prompt))//4} tokens)")
         
         # Call LLM with retry logic
-        for attempt in range(self.config.retry_attempts):
+        for attempt in range(self.settings.extraction.retry_attempts):
             try:
                 # Use direct Ollama API call with schema enforcement
                 import requests
-                ollama_url = f"{self.config.ollama_base_url}/api/generate"
+                ollama_url = f"{self.settings.ollama.base_url}/api/generate"
                 
                 # Build options dict with model parameters
                 options = {
-                    "temperature": self.config.temperature,
-                    "top_p": self.config.top_p,
-                    "seed": self.config.seed,
-                    "num_ctx": self.config.num_ctx if self.config.num_ctx is not None else 8192,  # Context window in options
+                    "temperature": self.settings.extraction.temperature,
+                    "top_p": self.settings.extraction.top_p,
+                    "seed": self.settings.extraction.seed,
+                    "num_ctx": self.settings.extraction.num_ctx,  # Context window in options
                 }
                 
                 payload = {
-                    "model": self.config.model_type,
+                    "model": self.settings.extraction.model_type,
                     "system": system_prompt,  # System prompt now separate
                     "prompt": extraction_prompt,  # User/extraction prompt only
                     "format": self.office_schema,
@@ -356,7 +356,7 @@ class OfficeExtractor(BaseExtractor):
                     
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
-                if attempt == self.config.retry_attempts - 1:
+                if attempt == self.settings.extraction.retry_attempts - 1:
                     raise
         
         return {'_chunk_ids': chunk_ids if 'chunk_ids' in locals() else []}

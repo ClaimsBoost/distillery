@@ -6,7 +6,7 @@ Handles document embedding operations
 import logging
 from typing import List, Dict, Any, Optional
 
-from ..core.config_manager import ExtractionConfig
+from ..core.settings import get_settings, Settings
 from ..embed import DocumentEmbedder
 
 logger = logging.getLogger(__name__)
@@ -15,17 +15,21 @@ logger = logging.getLogger(__name__)
 class EmbedCommand:
     """Handles embed command operations"""
     
-    def __init__(self, config: ExtractionConfig, storage_config: Dict[str, Any]):
+    def __init__(self, settings: Settings = None, storage_config: Dict[str, Any] = None):
         """
         Initialize embed command
         
         Args:
-            config: Extraction configuration
-            storage_config: Storage configuration
+            settings: Application settings (uses global if not provided)
+            storage_config: Storage configuration (uses settings if not provided)
         """
-        self.config = config
-        self.storage_config = storage_config
-        self.embedder = DocumentEmbedder(config, storage_config)
+        self.settings = settings or get_settings()
+        self.storage_config = storage_config or {
+            'type': self.settings.storage.type,
+            'bucket': self.settings.storage.bucket,
+            'base_path': self.settings.storage.base_path
+        }
+        self.embedder = DocumentEmbedder(self.settings, self.storage_config)
     
     def execute(self, targets: List[str], is_domain: bool = False, 
                 force: bool = False) -> Dict[str, Any]:

@@ -9,7 +9,7 @@ import time
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
-from ..core.config_manager import ExtractionConfig
+from ..core.settings import get_settings, Settings
 from ..core.storage_handler import StorageHandler
 from ..extract import OfficeExtractor
 
@@ -19,21 +19,23 @@ logger = logging.getLogger(__name__)
 class TestCommand:
     """Handles test-domain command operations"""
     
-    def __init__(self, config: ExtractionConfig, storage_config: Dict[str, Any], 
-                 supabase_client=None):
+    def __init__(self, settings: Settings = None, supabase_client=None):
         """
         Initialize test command
         
         Args:
-            config: Extraction configuration
-            storage_config: Storage configuration
+            settings: Application settings (uses global if not provided)
             supabase_client: Optional Supabase client
         """
-        self.config = config
-        self.storage_config = storage_config
+        self.settings = settings or get_settings()
+        self.storage_config = {
+            'type': self.settings.storage.type,
+            'bucket': self.settings.storage.bucket,
+            'base_path': self.settings.storage.base_path
+        }
         self.supabase_client = supabase_client
-        self.storage = StorageHandler(storage_config)
-        self.extractor = OfficeExtractor(config, supabase_client)
+        self.storage = StorageHandler(self.storage_config)
+        self.extractor = OfficeExtractor(self.settings, supabase_client)
     
     def execute(self, domain: str, re_embed: bool = False) -> Dict[str, Any]:
         """

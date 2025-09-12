@@ -4,15 +4,15 @@
 '''
 </context>
 
+
 <task>
-Analyze the above content and extract information about the law firm, including a description and classification of the firm type.
+Analyze the above content and classify whether this is a law firm and whether they handle personal injury cases.
 </task>
 
 <requirements>
-- Extract a single sentence description of the law firm (maximum 30 words)
 - Determine if this is actually a law firm website (not a directory, referral service, or other business)
-- Determine if the firm handles personal injury cases
-- Return valid JSON only
+- Determine if the firm takes on personal injury cases or clients
+- Return valid JSON only with two boolean fields
 </requirements>
 
 <example_input>
@@ -32,24 +32,32 @@ Call us at 555-123-4567 for a free consultation.
 
 <expected_output>
 json{
-  "short_description": "Smith & Associates is a full-service California law firm specializing in personal injury, business litigation, real estate, and estate planning.",
   "is_law_firm": true,
   "is_personal_injury_firm": true
 }
 </expected_output>
 
 <more_examples>
-Input: "Johnson Accounting Services provides tax preparation, bookkeeping, and financial consulting for small businesses in Texas."
-Output: {"short_description": "Johnson Accounting Services provides tax preparation and financial consulting for small businesses in Texas.", "is_law_firm": false, "is_personal_injury_firm": false}
-
 Input: "The Martinez Firm exclusively represents injured workers in workers' compensation and personal injury claims throughout Texas."
-Output: {"short_description": "The Martinez Firm exclusively represents injured workers in workers' compensation and personal injury claims throughout Texas.", "is_law_firm": true, "is_personal_injury_firm": true}
+Output: {"is_law_firm": true, "is_personal_injury_firm": true}
 
-Input: "Wilson & Partners is a boutique intellectual property firm protecting patents, trademarks, and copyrights for technology companies."
-Output: {"short_description": "Wilson & Partners is a boutique intellectual property firm protecting patents, trademarks, and copyrights for technology companies.", "is_law_firm": true, "is_personal_injury_firm": false}
+Input: "Our firm handles nursing home abuse, medical malpractice, and catastrophic injury cases."
+Output: {"is_law_firm": true, "is_personal_injury_firm": true}
 
-Input: "LegalZoom helps you create legal documents and connect with attorneys for your business and personal needs."
-Output: {"short_description": "LegalZoom helps create legal documents and connects users with attorneys for business and personal needs.", "is_law_firm": false, "is_personal_injury_firm": false}
+Input: "We handle slip and fall accidents, dog bites, and construction site injuries for union workers."
+Output: {"is_law_firm": true, "is_personal_injury_firm": true}
+
+Input: "Wilson & Partners is a boutique intellectual property firm protecting patents, trademarks, and copyrights."
+Output: {"is_law_firm": true, "is_personal_injury_firm": false}
+
+Input: "LegalZoom helps you create legal documents and connect with attorneys."
+Output: {"is_law_firm": false, "is_personal_injury_firm": false}
+
+Input: "Our practice areas include family law, criminal defense, and personal injury."
+Output: {"is_law_firm": true, "is_personal_injury_firm": true}
+
+Input: "We are a tax and estate planning firm serving high net worth individuals."
+Output: {"is_law_firm": true, "is_personal_injury_firm": false}
 </more_examples>
 
 <classification_guidelines>
@@ -59,15 +67,21 @@ For is_law_firm = true:
 - Not a directory, referral service, or legal tech platform
 
 For is_personal_injury_firm = true:
-- Handles personal injury, auto accidents, slip and fall cases
-- Represents injured victims seeking compensation
-- Includes workers' compensation, medical malpractice, wrongful death
-- May also handle other practice areas but must include PI work
+- Firm accepts or takes on ANY type of personal injury cases or clients, including:
+  * Car/automobile accidents
+  * Premises liability (slip and fall)
+  * Product liability
+  * Wrongful death
+  * Workplace injuries/workers' compensation
+  * Medical malpractice
+  * Motorcycle, truck, pedestrian accidents
+- Even if personal injury is a minor practice area among others, mark as true
+- Only mark false if the firm does NOT accept or handle injury cases or clients
 </classification_guidelines>
 
 <validation_rules>
-- short_description: Single sentence under 30 words
 - is_law_firm: Boolean value (true/false)
 - is_personal_injury_firm: Boolean value (true/false)
-- All three fields are required in the response
+- Both fields are required in the response
+- Return ONLY these two fields, no description or other fields
 </validation_rules>

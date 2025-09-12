@@ -56,7 +56,7 @@ class UniversalEvaluator:
         self.extraction_type = extraction_type
         self.dataset_type = dataset_type
         self.db_url = db_url or os.environ.get('LOCAL_DATABASE_URL', 
-                                                'postgresql://localhost:5432/distillery')
+                                                'postgresql://localhost:5432/claimsboost')
         
         # Build paths based on extraction and dataset type
         self.dataset_path = self._get_dataset_path()

@@ -5,10 +5,11 @@ Handles office location extraction from embedded documents
 
 import json
 import logging
+import uuid
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from ..core.config_manager import ExtractionConfig
+from ..core.settings import get_settings, Settings
 from ..extract import OfficeExtractor
 from ..extract.law_firm_confirmation_extractor import LawFirmConfirmationExtractor
 from ..database import get_database_connection
@@ -19,21 +20,23 @@ logger = logging.getLogger(__name__)
 class ExtractCommand:
     """Handles extract command operations"""
     
-    def __init__(self, config: ExtractionConfig, supabase_client=None):
+    def __init__(self, settings: Settings = None, supabase_client=None):
         """
         Initialize extract command
         
         Args:
-            config: Extraction configuration
+            settings: Application settings (uses global if not provided)
             supabase_client: Optional Supabase client
         """
-        self.config = config
+        self.settings = settings or get_settings()
         self.supabase_client = supabase_client
         self.extractors = {
-            'office_locations': OfficeExtractor(config, supabase_client),
-            'law_firm_confirmation': LawFirmConfirmationExtractor(config, supabase_client),
-            'short_description': LawFirmConfirmationExtractor(config, supabase_client)  # Legacy alias
+            'office_locations': OfficeExtractor(self.settings, supabase_client),
+            'law_firm_confirmation': LawFirmConfirmationExtractor(self.settings, supabase_client),
+            'short_description': LawFirmConfirmationExtractor(self.settings, supabase_client)  # Legacy alias
         }
+        # Get database connection for storing results
+        self.db_conn = get_database_connection()
     
     def execute(self, targets: List[str], extraction_type: str,
                 is_domain: bool = False) -> Dict[str, Any]:
@@ -77,6 +80,10 @@ class ExtractCommand:
                 'type': 'domain' if is_domain else 'document',
                 'data': result
             })
+            
+            # Store successful extraction in database
+            if result and not result.get('error'):
+                self._store_extraction(target, extraction_type, result, is_domain)
         
         # Format final results
         return {
@@ -90,9 +97,9 @@ class ExtractCommand:
                 'successful': sum(1 for r in all_results if r.get('data') and not r['data'].get('error'))
             },
             'config': {
-                'model': self.config.model_type,
-                'temperature': self.config.temperature,
-                'k_chunks': self.config.k_chunks
+                'model': self.settings.extraction.model_type,
+                'temperature': self.settings.extraction.temperature,
+                'k_chunks': self.settings.extraction.k_chunks
             }
         }
     
@@ -116,3 +123,64 @@ class ExtractCommand:
             results: Results dictionary from execute()
         """
         print(json.dumps(results, indent=2))
+    
+    def _store_extraction(self, target: str, extraction_type: str, 
+                         result: Dict[str, Any], is_domain: bool):
+        """
+        Store extraction result in database
+        
+        Args:
+            target: Domain or document ID
+            extraction_type: Type of extraction
+            result: Extraction result data
+            is_domain: Whether target is a domain
+        """
+        try:
+            # Prepare data for storage
+            # Remove internal metadata like _chunk_ids before storing
+            clean_result = {k: v for k, v in result.items() 
+                          if not k.startswith('_')}
+            
+            # Generate unique ID
+            extraction_id = str(uuid.uuid4())
+            
+            # Determine domain and path_id
+            if is_domain:
+                domain = target
+                path_id = None  # Domain-level extraction
+            else:
+                # For document extractions, try to extract domain
+                parts = target.split('/')
+                domain = parts[0] if parts else target
+                path_id = target
+            
+            # Insert into database
+            with self.db_conn.get_postgres_connection() as (conn, cur):
+                cur.execute("""
+                    INSERT INTO domain_extractions 
+                    (id, domain, path_id, extraction_name, extraction_version, 
+                     extraction_data, extracted_at, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (id) DO NOTHING
+                """, (
+                    extraction_id,
+                    domain,
+                    path_id,
+                    extraction_type,
+                    self.settings.extraction.model_type,  # Use model as version
+                    json.dumps(clean_result),
+                    datetime.now(),
+                    datetime.now(),
+                    datetime.now()
+                ))
+                conn.commit()
+                
+                if cur.rowcount > 0:
+                    logger.info(f"Stored extraction for {target} in database (ID: {extraction_id})")
+                else:
+                    logger.warning(f"Extraction already exists for {target}")
+                    
+        except Exception as e:
+            logger.error(f"Failed to store extraction: {str(e)}")
+            # Don't fail the whole extraction if storage fails
+            pass

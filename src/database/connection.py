@@ -3,7 +3,6 @@ Database connection management
 Handles both local PostgreSQL and Supabase connections
 """
 
-import os
 import logging
 from typing import Optional, Dict, Any
 from contextlib import contextmanager
@@ -11,6 +10,7 @@ from contextlib import contextmanager
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from supabase import create_client, Client
+from src.core.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +20,13 @@ class DatabaseConnection:
     
     def __init__(self):
         """Initialize database connection manager"""
-        self.local_db_url = os.environ.get('LOCAL_DATABASE_URL')
-        self.supabase_url = os.environ.get('SUPABASE_URL')
-        self.supabase_key = os.environ.get('SUPABASE_KEY')
+        self.settings = get_settings()
+        self.local_db_url = self.settings.database.local_database_uri
+        self.supabase_url = self.settings.database.supabase_url
+        self.supabase_key = self.settings.database.supabase_key
         
-        # Determine which database to use
-        self.use_local = bool(self.local_db_url)
+        # Determine which database to use based on environment
+        self.use_local = self.settings.is_local and bool(self.local_db_url)
         self.supabase_client = None
         
         if not self.use_local:

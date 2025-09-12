@@ -4,13 +4,13 @@ Supports both local PostgreSQL with pgvector and Supabase
 """
 
 import logging
-import os
 from typing import List, Dict, Any, Optional
 from abc import ABC, abstractmethod
 
 import psycopg2
 from langchain.schema import Document
 from langchain_community.vectorstores import SupabaseVectorStore
+from src.core.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -234,14 +234,15 @@ def create_vector_store(config: Dict[str, Any], embeddings, supabase_client=None
     Returns:
         Vector store instance
     """
-    # Check for local database URL
-    local_db_url = os.environ.get('LOCAL_DATABASE_URL')
+    # Get settings
+    settings = get_settings()
+    local_db_url = settings.database.local_database_uri
     
-    if local_db_url and not supabase_client:
+    if settings.is_local and local_db_url:
         logger.info("Using LocalPGVectorStore with local PostgreSQL")
         return LocalPGVectorStore(local_db_url, embeddings)
     elif supabase_client:
         logger.info("Using SupabaseVectorStore")
         return SupabaseVectorStoreWrapper(supabase_client, embeddings)
     else:
-        raise ValueError("No database configuration found. Set LOCAL_DATABASE_URL or provide Supabase client.")
+        raise ValueError("No database configuration found. Set LOCAL_DATABASE_URI or provide Supabase client.")

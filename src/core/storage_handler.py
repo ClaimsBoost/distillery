@@ -7,7 +7,7 @@ import logging
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 from supabase import create_client, Client
-import os
+from src.core.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +23,13 @@ class StorageHandler:
             config: Storage configuration from YAML
         """
         self.config = config
-        self.bucket = config.get('bucket', 'law-firm-html')
-        self.base_path = config.get('base_path', 'markdown')
+        self.bucket = config.get('bucket', 'law-firm-websites')
+        self.base_path = config.get('base_path', '')
         
         # Initialize Supabase client
-        supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_KEY')
+        settings = get_settings()
+        supabase_url = settings.database.supabase_url
+        supabase_key = settings.database.supabase_key
         
         if not supabase_url or not supabase_key:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment")
@@ -72,7 +73,8 @@ class StorageHandler:
             List of file names
         """
         try:
-            path = f"{self.base_path}/{domain}"
+            # Path structure is {domain}/markdown/
+            path = f"{domain}/markdown" if self.base_path == '' else f"{self.base_path}/{domain}"
             items = self.client.storage.from_(self.bucket).list(path)
             
             # Filter for markdown files
@@ -100,7 +102,8 @@ class StorageHandler:
             File content as string or None if failed
         """
         try:
-            path = f"{self.base_path}/{domain}/{filename}"
+            # Path structure is {domain}/markdown/{filename}
+            path = f"{domain}/markdown/{filename}" if self.base_path == '' else f"{self.base_path}/{domain}/{filename}"
             
             # Download using Supabase client
             response = self.client.storage.from_(self.bucket).download(path)
