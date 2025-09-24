@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "facebook": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "twitter": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "linkedin": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "instagram": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "youtube": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "avvo": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "justia": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "martindale": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

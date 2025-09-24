@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "is_law_firm",
+    "is_personal_injury_firm"
+  ],
+  "properties": {
+    "is_law_firm": {
+      "type": "boolean"
+    },
+    "is_personal_injury_firm": {
+      "type": "boolean"
+    }
+  }
+}

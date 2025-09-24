@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "motor_vehicle_accident",
+    "workplace_injury",
+    "medical_malpractice",
+    "product_liability",
+    "premises_liability",
+    "wrongful_death",
+    "practice_areas_list"
+  ],
+  "properties": {
+    "motor_vehicle_accident": {
+      "type": "boolean"
+    },
+    "workplace_injury": {
+      "type": "boolean"
+    },
+    "medical_malpractice": {
+      "type": "boolean"
+    },
+    "product_liability": {
+      "type": "boolean"
+    },
+    "premises_liability": {
+      "type": "boolean"
+    },
+    "wrongful_death": {
+      "type": "boolean"
+    },
+    "practice_areas_list": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

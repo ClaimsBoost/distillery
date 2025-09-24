@@ -55,7 +55,7 @@ class DocumentEmbedder:
         # Get database connection
         self.db_conn = get_database_connection()
         
-        logger.info(f"DocumentEmbedder initialized with model: {config.embedder_type}")
+        logger.info(f"DocumentEmbedder initialized with model: {self.settings.extraction.embedder_type}")
     
     def embed_file(self, file_path: str, force: bool = False) -> Dict[str, Any]:
         """

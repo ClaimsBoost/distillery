@@ -63,8 +63,14 @@ Output: {"is_law_firm": true, "is_personal_injury_firm": false}
 <classification_guidelines>
 For is_law_firm = true:
 - Must be an actual law firm or law office
-- Has licensed attorneys providing legal services
+- Has licensed attorneys providing legal services directly
 - Not a directory, referral service, or legal tech platform
+
+For is_law_firm = false:
+- Referral services that connect clients with attorneys (e.g., "We connect you with attorneys")
+- Medical treatment centers that refer to attorneys
+- Marketing services like 1-800 numbers that route to different firms
+- Legal directories or matching platforms
 
 For is_personal_injury_firm = true:
 - Firm accepts or takes on ANY type of personal injury cases or clients, including:

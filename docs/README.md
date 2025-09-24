@@ -1,19 +1,71 @@
-# Law Firm Office Location Extraction System
+# Law Firm Data Extraction System
 
-A powerful document processing and information extraction system specifically designed to identify office locations from law firm websites. The system uses RAG (Retrieval-Augmented Generation) with vector search to accurately extract office addresses from website content.
+A comprehensive document processing and information extraction system designed to extract 11 different types of structured data from law firm websites. The system uses RAG (Retrieval-Augmented Generation) with vector search to accurately extract various types of information including office locations, contact details, practice areas, attorney information, and business metrics from website content.
 
 ## Overview
 
-This system processes law firm website content (stored as markdown files) and extracts structured office location data including street addresses, cities, states, and other location details. It leverages modern NLP techniques including document chunking, vector embeddings, and large language models to provide accurate extraction results.
+This system processes law firm website content (stored as markdown files) and extracts 11 different types of structured data through specialized extractors. Each extractor focuses on a specific data type and uses tailored prompts and schemas to ensure accurate extraction. The system leverages modern NLP techniques including document chunking, vector embeddings, and large language models to provide accurate and consistent extraction results across all data types.
 
 ### Key Features
 
 - **Document Embedding**: Process and embed website content into vector databases for efficient retrieval
-- **Vector Search**: Use semantic search to find relevant content chunks containing office information
-- **Structured Extraction**: Extract office locations in consistent JSON format
+- **Vector Search**: Use semantic search to find relevant content chunks for each extraction type
+- **Modular Extractors**: 11 specialized extractors, each with dedicated prompts, schemas, and logic
+- **Structured Extraction**: Extract all data types in consistent JSON format with validation
 - **Multiple Database Support**: Works with both local PostgreSQL (with pgvector) and Supabase
 - **Batch Processing**: Handle individual files or entire domains
+- **Comprehensive Extraction**: Run all extractors at once or target specific data types
 - **Testing Framework**: Built-in evaluation against ground truth data
+
+## Extraction Types
+
+The system includes 11 specialized extractors, each designed to extract specific types of information from law firm websites:
+
+### 1. Office Locations (`office_locations`)
+Extracts physical office addresses, including street addresses, cities, states, and postal codes.
+
+### 2. Law Firm Confirmation (`law_firm_confirmation`)
+Confirms whether the website represents a legitimate law firm and extracts basic firm identity information.
+
+### 3. Contact Information (`contact_info`)
+Extracts contact details including phone numbers, email addresses, and other contact methods.
+
+### 4. Practice Areas (`practice_areas`)
+Identifies the legal practice areas and specializations offered by the firm.
+
+### 5. Attorney Information (`attorneys`)
+Extracts information about attorneys including names, titles, credentials, and specializations.
+
+### 6. Case Results (`case_results`)
+Extracts notable case outcomes, settlement amounts, verdicts, and success stories.
+
+### 7. Year Founded (`year_founded`)
+Extracts the founding year or establishment date of the law firm.
+
+### 8. Total Settlements (`total_settlements`)
+Identifies settlement amounts, case results, and monetary outcomes when available.
+
+### 9. Testimonials (`testimonials`)
+Extracts client testimonials, reviews, and feedback about the law firm's services.
+
+### 10. Languages Spoken (`languages_spoken`)
+Extracts information about languages supported by the firm's staff.
+
+### 11. Social Media (`social_media`)
+Identifies social media profiles and online presence information.
+
+### 12. Company Description (`company_description`)
+Extracts descriptive information about the firm's mission, values, and overview.
+
+
+### 11. States Served (`states_served`)
+Determines the geographic regions, states, or jurisdictions where the firm provides services.
+
+Each extractor follows a consistent structure with:
+- **Modular Design**: Self-contained in its own directory
+- **Custom Prompts**: Tailored extraction prompts in `prompt.md`
+- **Schema Validation**: JSON schema for output validation in `schema.json`
+- **Specialized Logic**: Extractor-specific implementation in `extractor.py`
 
 ## Architecture
 
@@ -23,11 +75,10 @@ The system follows a modular command-based architecture:
 src/
 ├── commands/           # Command handlers for CLI operations
 │   ├── embed_command.py    # Document embedding operations
-│   ├── extract_command.py  # Office extraction operations
+│   ├── extract_command.py  # Data extraction operations (all 11 types)
 │   └── test_command.py     # Testing and evaluation
 ├── core/               # Core configuration and utilities
-│   ├── config_manager.py   # Configuration management
-│   ├── env_config.py      # Environment configuration
+│   ├── settings.py         # Pydantic-based configuration management
 │   ├── prompts.py         # LLM prompt templates
 │   └── storage_handler.py # File storage operations
 ├── database/           # Database abstraction layer
@@ -37,9 +88,27 @@ src/
 │   ├── chunker.py         # Document chunking utilities
 │   ├── embedder.py        # Vector embedding operations
 │   └── pattern_detector.py # Content pattern detection
-└── extract/            # Extraction logic
-    ├── base_extractor.py  # Base extraction interface
-    └── office_extractor.py # Office location extraction
+└── extract/            # Modular extraction system
+    ├── enhanced_base_extractor.py  # Enhanced base extraction interface
+    ├── extractor_config.py        # Extractor configuration utilities
+    └── extractors/                # Individual extractor modules
+        ├── office_locations/      # Office location extraction
+        │   ├── extractor.py      # Extractor implementation
+        │   ├── prompt.md         # Extraction prompt
+        │   ├── schema.json       # JSON schema for validation
+        │   └── __init__.py       # Module exports
+        ├── law_firm_confirmation/ # Law firm confirmation
+        ├── contact_info/          # Contact information
+        ├── practice_areas/        # Practice areas
+        ├── attorneys/             # Attorney information
+        ├── case_results/          # Case results and verdicts
+        ├── year_founded/          # Year founded
+        ├── total_settlements/     # Settlement information
+        ├── testimonials/          # Client testimonials
+        ├── languages_spoken/      # Languages supported
+        ├── social_media/          # Social media presence
+        ├── company_description/   # Company description
+        └── states_served/         # States served
 ```
 
 ## Installation
@@ -165,21 +234,62 @@ python main.py embed --config config/custom.json --domain lawfirm.com
 
 ### 2. Extract Command
 
-Extract office locations from embedded documents:
+Extract specific data types or all data from embedded documents:
 
 ```bash
-# Extract from domains
-python main.py extract --type office_locations --domain lawfirm.com anotherfirm.com
+# Extract specific data types from domains
+python main.py extract --type office_locations --domain lawfirm.com
+python main.py extract --type practice_areas --domain lawfirm.com
+python main.py extract --type contact_info --domain lawfirm.com
+
+# Extract all data types at once
+python main.py extract --type all --domain lawfirm.com
+
+# Extract from multiple domains
+python main.py extract --type office_locations --domain lawfirm1.com lawfirm2.com
 
 # Extract from specific documents
 python main.py extract --type office_locations doc_id_1 doc_id_2
 
 # Save results to file
-python main.py extract --type office_locations --domain lawfirm.com --output results.json
+python main.py extract --type all --domain lawfirm.com --output results.json
 
 # Use custom configuration
 python main.py extract --type office_locations --config config/custom.json --domain lawfirm.com
 ```
+
+#### Available Extraction Types
+
+| Type | Description |
+|------|-------------|
+| `office_locations` | Physical office addresses |
+| `law_firm_confirmation` | Law firm identity verification |
+| `contact_info` | Phone numbers, emails, contact methods |
+| `practice_areas` | Legal specializations and services |
+| `attorneys` | Attorney names, titles, credentials |
+| `case_results` | Notable case outcomes and verdicts |
+| `year_founded` | Firm establishment date |
+| `total_settlements` | Settlement amounts and case results |
+| `testimonials` | Client reviews and testimonials |
+| `languages_spoken` | Supported languages |
+| `social_media` | Social media profiles |
+| `company_description` | Firm mission and overview |
+| `states_served` | Geographic service areas |
+| `all` | Run all extractors |
+
+### Getting Combined Results
+
+After running extractions, you can retrieve all results for a domain in a single JSON object:
+
+```bash
+# Get combined extraction results for a domain
+psql -U postgres -d claimsboost -v domain="'lawfirm.com'" -t -A -f sql/get_domain_extractions.sql > output.json
+
+# Pretty print the results
+psql -U postgres -d claimsboost -v domain="'lawfirm.com'" -f sql/get_domain_extractions.sql
+```
+
+This SQL query combines the most recent extraction results for each data type into a single JSON object, making it easy to work with all extracted data together.
 
 ### 3. Test Command
 
@@ -238,8 +348,9 @@ python evaluation/scripts/evaluate.py --quiet extraction.json
 
 ## Output Format
 
-The system extracts office locations in the following JSON structure:
+The system extracts data in consistent JSON structures. Here are examples for different extraction types:
 
+### Office Locations
 ```json
 {
   "extraction_type": "office_locations",
@@ -263,14 +374,92 @@ The system extracts office locations in the following JSON structure:
   "summary": {
     "total_targets": 1,
     "successful": 1
-  },
-  "config": {
-    "model": "llama3.1:8b",
-    "temperature": 0.1,
-    "k_chunks": 5
   }
 }
 ```
+
+### Contact Information
+```json
+{
+  "extraction_type": "contact_info",
+  "timestamp": "2024-01-15T10:30:00",
+  "results": [
+    {
+      "target": "lawfirm.com",
+      "type": "domain",
+      "data": {
+        "phone_numbers": ["(555) 123-4567", "(555) 987-6543"],
+        "email_addresses": ["info@lawfirm.com", "contact@lawfirm.com"],
+        "fax_numbers": ["(555) 123-4568"],
+        "_metadata": {
+          "extraction_time_seconds": 1.8,
+          "timestamp": "2024-01-15T10:30:00"
+        }
+      }
+    }
+  ]
+}
+```
+
+### Practice Areas
+```json
+{
+  "extraction_type": "practice_areas",
+  "timestamp": "2024-01-15T10:30:00",
+  "results": [
+    {
+      "target": "lawfirm.com",
+      "type": "domain",
+      "data": {
+        "practice_areas": [
+          "Personal Injury",
+          "Medical Malpractice",
+          "Workers' Compensation",
+          "Car Accidents"
+        ],
+        "_metadata": {
+          "extraction_time_seconds": 2.1,
+          "timestamp": "2024-01-15T10:30:00"
+        }
+      }
+    }
+  ]
+}
+```
+
+### Combined Results (using SQL query)
+```json
+{
+  "domain": "lawfirm.com",
+  "extractions": {
+    "office_locations": {
+      "offices": ["123 Main Street New York, NY 10001"]
+    },
+    "contact_info": {
+      "phone_numbers": ["(555) 123-4567"],
+      "email_addresses": ["info@lawfirm.com"]
+    },
+    "practice_areas": {
+      "practice_areas": ["Personal Injury", "Medical Malpractice"]
+    },
+    "attorneys": {
+      "attorneys": [
+        {
+          "name": "John Smith",
+          "title": "Senior Partner",
+          "specializations": ["Personal Injury"]
+        }
+      ]
+    },
+    "law_firm_confirmation": {
+      "is_law_firm": true,
+      "firm_name": "Smith & Associates"
+    }
+  }
+}
+```
+
+All extractions include metadata about processing time and timestamps, and follow consistent JSON schemas defined in each extractor's `schema.json` file.
 
 ## Database Schema
 
@@ -299,17 +488,19 @@ The system follows this organization:
 ```
 distillery/
 ├── src/                    # Core application code
+│   └── extract/extractors/ # 11 modular extractors
 ├── config/                 # Configuration files
+├── sql/                   # SQL queries for data retrieval
+│   └── get_domain_extractions.sql  # Combined results query
 ├── evaluation/             # Evaluation system
 │   ├── scripts/           # Evaluation scripts
 │   │   └── evaluate.py    # Universal evaluation script
 │   ├── test_data/         # Ground truth datasets
 │   │   ├── office_locations_test_set.json
-│   │   └── office_locations_validation_set.json
+│   │   └── {extraction_type}_test_set.json (for each type)
 │   └── results/           # Evaluation results
 │       ├── extractions/   # Raw extraction results
 │       └── evaluations/   # Evaluation metrics
-├── prompts/               # LLM prompt templates
 └── main.py               # Main CLI interface
 ```
 
@@ -317,12 +508,23 @@ distillery/
 
 ### Adding New Extraction Types
 
-1. Create a new extractor class inheriting from `BaseExtractor`
-2. Add the extraction logic in `src/extract/`
-3. Update the CLI command handler in `src/commands/extract_command.py`
-4. Add corresponding prompts in `prompts/extraction/`
-5. Create ground truth datasets in `evaluation/test_data/`
-6. Update the universal evaluator to support the new type
+1. Create a new directory in `src/extract/extractors/{new_extractor_name}/`
+2. Implement the extractor class inheriting from `BaseExtractor` in `extractor.py`
+3. Create the extraction prompt in `prompt.md`
+4. Define the JSON schema for validation in `schema.json`
+5. Add module exports in `__init__.py`
+6. Update the CLI command handler in `src/commands/extract_command.py` to include the new extractor
+7. Create ground truth datasets in `evaluation/test_data/`
+8. Update the universal evaluator to support the new type
+
+#### Extractor Directory Structure
+```
+src/extract/extractors/{new_extractor_name}/
+├── extractor.py     # Main extractor implementation
+├── prompt.md        # LLM prompt for extraction
+├── schema.json      # JSON schema for output validation
+└── __init__.py      # Module exports
+```
 
 ### Testing and Evaluation
 
@@ -335,13 +537,13 @@ The system includes a comprehensive testing framework:
 
 ### Current Performance Metrics
 
-**Office Location Extraction:**
+**Office Location Extraction (Primary Reference):**
 - Test Set: ~94.67% F1 Score
 - Validation Set: 96.67% F1 Score (10 domains)
 - Average Precision: 95%
 - Average Recall: 100%
 
-The system demonstrates strong performance across different law firm websites with consistent accuracy in extracting office addresses.
+The system demonstrates strong performance across different law firm websites with consistent accuracy. While comprehensive performance metrics are being developed for all 11 extraction types, the office location extractor serves as the performance benchmark, showing reliable extraction capabilities that extend to other data types through the shared modular architecture.
 
 ### Ground Truth Format
 

@@ -1,31 +1,38 @@
 # Distillery - Law Firm Data Extraction System
 
-A powerful document processing and information extraction system for law firm websites.
+A comprehensive document processing and information extraction system that extracts 11 different types of structured data from law firm websites using RAG (Retrieval-Augmented Generation) technology.
 
 ## Documentation
 
-- **[Full Documentation](docs/README.md)** - Complete system documentation, installation, and usage guide
+- **[Setup Guide](SETUP.md)** - Production setup and GPU configuration
+- **[Full Documentation](docs/README.md)** - Complete system documentation and usage guide
 - **[Project Instructions](docs/CLAUDE.md)** - Development instructions and guidelines
-- **[Configuration Guide](docs/configuration-refactoring-guide.md)** - Configuration system architecture and best practices
 
 ## Quick Start
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Run automated setup
+./setup.sh
 
-# Set up environment
-cp config/.env.example config/.env
-# Edit config/.env with your credentials
+# Configure environment
+cp .env.example .env
+# Edit .env with your database credentials and settings
 
-# Check system status
-python main.py status
+# Activate virtual environment
+source venv/bin/activate
 
-# View extraction statistics
-python main.py stats
+# Embed domain content for processing
+python main.py embed --domain example.com
 
-# Extract law firm data
-python main.py extract domain.com --type law_firm_confirmation --domain
+# Extract specific data type
+python main.py extract --domain example.com --type contact_info
+
+# Extract all data types at once
+python main.py extract --domain example.com --type all
+
+# Get combined extraction results
+psql -U your_user -d your_database -v domain="'example.com'" -t -A -f sql/get_domain_extractions.sql > output.json
 ```
 
-For detailed instructions, see the [full documentation](docs/README.md).
+For detailed setup instructions, see the [Setup Guide](SETUP.md).
+For complete documentation, see the [full documentation](docs/README.md).

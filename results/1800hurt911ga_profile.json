@@ -1,0 +1,99 @@
+{
+    "domain": "1800hurt911ga.com",
+    "extractions": {
+        "attorneys": {
+            "attorneys": [
+                {
+                    "name": "1-800-HURT911",
+                    "title": null,
+                    "bio_snippet": null
+                }
+            ],
+            "total_attorneys": 0
+        },
+        "contact_info": {
+            "fax": null,
+            "email": "contact@1800hurt911ga.com",
+            "primary_phone": "(678) 578-6974",
+            "toll_free_phone": null
+        },
+        "social_media": {
+            "justia": null,
+            "twitter": null,
+            "youtube": null,
+            "facebook": null,
+            "linkedin": null,
+            "instagram": null,
+            "martindale": null
+        },
+        "year_founded": {
+            "year_founded": null
+        },
+        "states_served": {
+            "states": [
+                "GA"
+            ]
+        },
+        "practice_areas": {
+            "wrongful_death": false,
+            "workplace_injury": false,
+            "product_liability": false,
+            "premises_liability": false,
+            "medical_malpractice": false,
+            "practice_areas_list": [
+                "Motorcycle Accidents",
+                "Car Accidents",
+                "Bicycle Accidents",
+                "Truck Accidents"
+            ],
+            "motor_vehicle_accident": false
+        },
+        "languages_spoken": {
+            "speaks_hindi": false,
+            "speaks_arabic": false,
+            "speaks_french": false,
+            "speaks_german": false,
+            "speaks_chinese": false,
+            "speaks_english": true,
+            "speaks_russian": false,
+            "speaks_spanish": false,
+            "speaks_tagalog": false,
+            "other_languages": [
+            ],
+            "speaks_portuguese": false,
+            "speaks_vietnamese": false
+        },
+        "office_locations": {
+            "offices": [
+                "147 North Avenue NE Atlanta, GA 30308",
+                "1465 Westwood Ave Atlanta, GA 30310",
+                "5700 Hillandale Dr #190 Lithonia, GA 30058",
+                "2417 Candler Rd. Decatur, GA 30032",
+                "1515 Pennsylvania Ave McDonough, GA 30253",
+                "7147 Jonesboro Rd. Suite J Morrow, GA 30260"
+            ]
+        },
+        "total_settlements": {
+            "firm_total": {
+                "is_minimum": false,
+                "display_text": null,
+                "total_amount": null
+            },
+            "individual_cases": [
+                {
+                    "amount": 15000,
+                    "display_text": "$15,000- $45,000",
+                    "insurance_company": null
+                }
+            ]
+        },
+        "company_description": {
+            "company_description": "A law firm specializing in rideshare accident cases, offering medical treatment and legal referrals for Uber and Lyft injuries."
+        },
+        "law_firm_confirmation": {
+            "is_law_firm": true,
+            "is_personal_injury_firm": true
+        }
+    },
+    "extraction_timestamp": "2025-09-21T00:57:26.761973-04:00"
+}

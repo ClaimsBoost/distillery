@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "primary_phone",
+    "toll_free_phone",
+    "fax",
+    "email"
+  ],
+  "properties": {
+    "primary_phone": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "toll_free_phone": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "fax": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "email": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

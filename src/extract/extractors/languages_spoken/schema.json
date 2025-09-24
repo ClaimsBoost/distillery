@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "speaks_english",
+    "speaks_spanish",
+    "speaks_chinese",
+    "speaks_vietnamese",
+    "speaks_french",
+    "speaks_german",
+    "speaks_arabic",
+    "speaks_russian",
+    "speaks_portuguese",
+    "speaks_tagalog",
+    "speaks_hindi",
+    "other_languages"
+  ],
+  "properties": {
+    "speaks_english": {
+      "type": "boolean"
+    },
+    "speaks_spanish": {
+      "type": "boolean"
+    },
+    "speaks_chinese": {
+      "type": "boolean"
+    },
+    "speaks_vietnamese": {
+      "type": "boolean"
+    },
+    "speaks_french": {
+      "type": "boolean"
+    },
+    "speaks_german": {
+      "type": "boolean"
+    },
+    "speaks_arabic": {
+      "type": "boolean"
+    },
+    "speaks_russian": {
+      "type": "boolean"
+    },
+    "speaks_portuguese": {
+      "type": "boolean"
+    },
+    "speaks_tagalog": {
+      "type": "boolean"
+    },
+    "speaks_hindi": {
+      "type": "boolean"
+    },
+    "other_languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

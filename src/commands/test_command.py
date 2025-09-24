@@ -11,7 +11,7 @@ from pathlib import Path
 
 from ..core.settings import get_settings, Settings
 from ..core.storage_handler import StorageHandler
-from ..extract import OfficeExtractor
+from ..extract import OfficeLocationsExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class TestCommand:
         }
         self.supabase_client = supabase_client
         self.storage = StorageHandler(self.storage_config)
-        self.extractor = OfficeExtractor(self.settings, supabase_client)
+        self.extractor = OfficeLocationsExtractor(self.settings, supabase_client)
     
     def execute(self, domain: str, re_embed: bool = False) -> Dict[str, Any]:
         """

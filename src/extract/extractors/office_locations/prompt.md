@@ -13,6 +13,8 @@ Extract all office locations from the above law firm website content and return 
 - Identify all sections that might contain office information
 - Extract complete address information when available
 - Format addresses consistently
+- Deduplicate addresses: if the same location appears multiple times with different formatting, only include it once
+- Use the most complete version of each address (prefer versions with ZIP codes over those without)
 - Return valid JSON only
 </requirements>
 
@@ -56,6 +58,11 @@ ZIP codes should be 5 digits or 5+4 format
 No duplicate addresses in the output array
 Street addresses should include numbers and street names
 City names should be properly capitalized
+CRITICAL: Deduplicate addresses that refer to the same location even if formatted differently
+- Same street address with/without suite = duplicate
+- Same address with state name vs abbreviation = duplicate
+- Same address with/without building name = duplicate
+- Only keep the most complete version of each unique address
 </validation_rules>
 
 <exclusions>

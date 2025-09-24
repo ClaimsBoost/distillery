@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "firm_total",
+    "individual_cases"
+  ],
+  "properties": {
+    "firm_total": {
+      "type": "object",
+      "properties": {
+        "total_amount": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "display_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "is_minimum": {
+          "type": "boolean"
+        }
+      }
+    },
+    "individual_cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "case_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_text": {
+            "type": "string"
+          },
+          "insurance_company": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

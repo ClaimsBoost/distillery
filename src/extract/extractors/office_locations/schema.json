@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["offices"],
+  "properties": {
+    "offices": {
+      "type": "array",
+      "description": "List of office addresses",
+      "items": {
+        "type": "string",
+        "description": "Complete office address"
+      }
+    }
+  }
+}

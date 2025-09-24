@@ -1,0 +1,100 @@
+{
+    "domain": "137law.com",
+    "extractions": {
+        "awards": {
+            "awards": [
+            ]
+        },
+        "attorneys": {
+            "attorneys": [
+                {
+                    "name": "Phyllis Mattingly",
+                    "title": null,
+                    "bio_snippet": "Welcome to McCauley & Mattingly Law Firm. Phyllis Mattingly has practiced law in Versailles since 1981."
+                }
+            ],
+            "total_attorneys": 1
+        },
+        "contact_info": {
+            "fax": "(859) 873-8035",
+            "email": "contact@137law.com",
+            "primary_phone": "(859) 873-8033",
+            "toll_free_phone": null
+        },
+        "social_media": {
+            "justia": null,
+            "youtube": null,
+            "facebook": "https://www.facebook.com/McCauley-Mattingly-Attorneys-136343466771620",
+            "linkedin": null,
+            "instagram": null,
+            "martindale": null
+        },
+        "year_founded": {
+            "year_founded": 1981
+        },
+        "fee_structure": {
+            "no_fee_unless_you_win": false
+        },
+        "states_served": {
+            "states": [
+                "KY"
+            ]
+        },
+        "practice_areas": {
+            "wrongful_death": false,
+            "workplace_injury": false,
+            "product_liability": false,
+            "premises_liability": false,
+            "medical_malpractice": false,
+            "practice_areas_list": [
+                "Real Estate",
+                "Wills, Trusts, and Estates",
+                "General Civil Litigation with a focus in the real estate area",
+                "Family Law (divorce, child custody, child support and post divorce matters)"
+            ],
+            "motor_vehicle_accident": false
+        },
+        "languages_spoken": {
+            "speaks_hindi": false,
+            "speaks_arabic": false,
+            "speaks_french": false,
+            "speaks_german": false,
+            "speaks_chinese": false,
+            "speaks_english": true,
+            "speaks_russian": false,
+            "speaks_spanish": false,
+            "speaks_tagalog": false,
+            "other_languages": [
+            ],
+            "speaks_portuguese": false,
+            "speaks_vietnamese": false
+        },
+        "office_locations": {
+            "offices": [
+                "100 United Drive, Suite 4D Versailles, KY 40383"
+            ]
+        },
+        "free_consultation": {
+            "consultation_text": null,
+            "consultation_conditions": null,
+            "offers_free_consultation": false
+        },
+        "total_settlements": {
+            "firm_total": {
+                "is_minimum": false,
+                "display_text": null,
+                "total_amount": null
+            },
+            "individual_cases": [
+            ]
+        },
+        "company_description": {
+            "company_description": "McCauley & Mattingly Attys is a law firm in Versailles, Kentucky, specializing in general civil litigation, real estate, family law, and estates with over 40 years of experience."
+        },
+        "law_firm_confirmation": {
+            "is_law_firm": true,
+            "is_personal_injury_firm": false
+        }
+    },
+    "extraction_timestamp": "2025-09-19T11:34:13.854694-04:00"
+}

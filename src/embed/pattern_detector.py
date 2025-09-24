@@ -36,17 +36,21 @@ class PatternDetector:
         r'\+1[\s.-]?\d{3}[\s.-]?\d{3}[\s.-]?\d{4}',  # +1 123-456-7890
         r'1-\d{3}-\d{3}-\d{4}',  # 1-123-456-7890
     ]
-    
-    # Social media patterns
-    SOCIAL_MEDIA_PATTERNS = [
-        r'(?:https?://)?(?:www\.)?facebook\.com/[\w\-\.]+',
-        r'(?:https?://)?(?:www\.)?twitter\.com/[\w\-\.]+',
-        r'(?:https?://)?(?:www\.)?x\.com/[\w\-\.]+',
-        r'(?:https?://)?(?:www\.)?linkedin\.com/(?:in|company)/[\w\-\.]+',
-        r'(?:https?://)?(?:www\.)?instagram\.com/[\w\-\.]+',
-        r'(?:https?://)?(?:www\.)?youtube\.com/(?:channel|user|c)/[\w\-\.]+',
-        r'@[\w\-\.]+\b',  # Twitter/Instagram handles
+
+    # Money/settlement amount patterns
+    MONEY_PATTERNS = [
+        # Dollar amounts with various formats: $1,000,000, $1M, $1.5 million
+        r'\$[\d,]+(?:\.\d+)?(?:\s*(?:million|Million|MILLION|mil|MIL|billion|Billion|BILLION|bil|BIL|thousand|Thousand|THOUSAND|k|K|M|B))?',
+        # Written numbers with dollar context: "five million dollars", "100 thousand dollars"
+        r'\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion)(?:\s+(?:hundred|thousand|million|billion))?\s+dollars?\b',
+        # Settlements/verdicts/awards with numbers: "1.5 million settlement", "500k verdict"
+        r'\b\d+(?:,\d{3})*(?:\.\d+)?\s*(?:million|Million|mil|thousand|Thousand|k|K|M)\s*(?:in\s+)?(?:settlement|verdict|award|compensation|recovery|damages)',
+        # Plain large numbers that could be money (10,000+ or 100000+)
+        r'\b\d{1,3}(?:,\d{3}){1,}\b|\b\d{5,}\b',
+        # Written form: "twenty thousand", "five hundred thousand", "1.2 million"
+        r'\b(?:one|two|three|four|five|six|seven|eight|nine|ten|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion)(?:\s+(?:hundred|thousand|million|billion))+\b',
     ]
+
     
     @classmethod
     def detect_patterns(cls, text: str) -> Dict[str, Any]:
@@ -99,22 +103,22 @@ class PatternDetector:
         
         metadata['contains_phone_numbers'] = len(phone_matches) > 0
         metadata['phone_count'] = len(set(phone_matches))
-        
-        # Check for social media links
-        social_matches = []
-        for pattern in cls.SOCIAL_MEDIA_PATTERNS:
+
+        # Combined contact count (emails + phone numbers)
+        total_contact_count = metadata['email_count'] + metadata['phone_count']
+        metadata['contains_contact'] = total_contact_count > 0
+        metadata['contact_count'] = total_contact_count
+
+        # Check for money/settlement amounts
+        money_matches = []
+        for pattern in cls.MONEY_PATTERNS:
             matches = re.findall(pattern, text, re.IGNORECASE)
-            social_matches.extend(matches)
-        
-        metadata['contains_social_media_links'] = len(social_matches) > 0
-        metadata['social_media_count'] = len(set(social_matches))
-        
+            money_matches.extend(matches)
+
+        metadata['contains_money'] = len(money_matches) > 0
+        metadata['money_count'] = len(set(money_matches))
+
         # Add additional useful flags for law firm context
-        metadata['contains_office_keywords'] = bool(
-            re.search(r'\b(?:office|location|headquarters|branch|main office|satellite office|visit us|find us|located at|address|contact us)\b', 
-                     text, re.IGNORECASE)
-        )
-        
         metadata['contains_attorney_names'] = bool(
             re.search(r'\b(?:attorney|lawyer|esq\.?|esquire|partner|associate|counsel|jr\.?|sr\.?|iii|ii)\b',
                      text, re.IGNORECASE)

@@ -1,0 +1,164 @@
+{
+    "domain": "1800hurt911ga.com",
+    "extractions": {
+        "awards": {
+            "awards": [
+                {
+                    "year": null,
+                    "recipient": "",
+                    "award_name": "Award Winning Care",
+                    "description": "",
+                    "issuing_organization": null
+                },
+                {
+                    "year": 2023,
+                    "recipient": "",
+                    "award_name": "Tratamiento de lesiones en la cabeza en Atlanta",
+                    "description": "",
+                    "issuing_organization": null
+                },
+                {
+                    "year": 2023,
+                    "recipient": "",
+                    "award_name": "Tratamiento del túnel carpiano en Atlanta",
+                    "description": "",
+                    "issuing_organization": null
+                },
+                {
+                    "year": 2023,
+                    "recipient": "",
+                    "award_name": "Imágenes de rayos X en Atlanta",
+                    "description": "",
+                    "issuing_organization": null
+                },
+                {
+                    "year": 2023,
+                    "recipient": "",
+                    "award_name": "Tratamiento de lesiones de la columna en Atlanta",
+                    "description": "",
+                    "issuing_organization": null
+                },
+                {
+                    "year": 2023,
+                    "recipient": "",
+                    "award_name": "Tratamiento de huesos rotos",
+                    "description": "",
+                    "issuing_organization": null
+                },
+                {
+                    "year": 2023,
+                    "recipient": "",
+                    "award_name": "Atlanta Rayos X Imágenes",
+                    "description": "",
+                    "issuing_organization": null
+                },
+                {
+                    "year": 2023,
+                    "recipient": "",
+                    "award_name": "Testimonios",
+                    "description": "",
+                    "issuing_organization": null
+                }
+            ]
+        },
+        "attorneys": {
+            "attorneys": [
+            ],
+            "total_attorneys": 0
+        },
+        "contact_info": {
+            "fax": null,
+            "email": null,
+            "has_24_7_line": false,
+            "primary_phone": null,
+            "emergency_phone": null,
+            "toll_free_phone": null
+        },
+        "social_media": {
+            "justia": null,
+            "twitter": null,
+            "youtube": null,
+            "facebook": "https://www.facebook.com/HURT911InjuryCenters/",
+            "linkedin": null,
+            "instagram": "https://www.instagram.com/hurt911injurycenters/",
+            "martindale": "https://www.martindale.com/law-firm/HURT-911-Injury-Centers-Atlanta-GA.html"
+        },
+        "year_founded": {
+            "year_founded": null
+        },
+        "fee_structure": {
+            "no_fee_unless_you_win": false
+        },
+        "states_served": {
+            "states": [
+                "GA"
+            ]
+        },
+        "practice_areas": {
+            "wrongful_death": false,
+            "workplace_injury": false,
+            "product_liability": false,
+            "premises_liability": true,
+            "medical_malpractice": false,
+            "practice_areas_list": [
+                "Auto Accidents",
+                "MARTA Accidents",
+                "Motorcycle Accidents",
+                "Scooter Accidents",
+                "Big Truck Accidents",
+                "Uber & Lyft Accidents",
+                "Slip & Fall Accidents"
+            ],
+            "motor_vehicle_accident": true
+        },
+        "languages_spoken": {
+            "speaks_hindi": false,
+            "speaks_arabic": false,
+            "speaks_french": false,
+            "speaks_german": false,
+            "speaks_chinese": false,
+            "speaks_english": true,
+            "speaks_russian": false,
+            "speaks_spanish": false,
+            "speaks_tagalog": false,
+            "other_languages": [
+            ],
+            "speaks_portuguese": false,
+            "speaks_vietnamese": false
+        },
+        "office_locations": {
+            "offices": [
+                "147 North Avenue NE Atlanta, GA 30308",
+                "1465 Westwood Ave Atlanta, GA 30310",
+                "5700 Hillandale Dr #190 Lithonia, GA 30058",
+                "2417 Candler Rd. Decatur, GA 30032",
+                "1515 Pennsylvania Ave McDonough, GA 30253",
+                "7147 Jonesboro Rd. Suite J Morrow, GA 30260"
+            ]
+        },
+        "free_consultation": {
+            "conditions": null,
+            "contact_method": null,
+            "consultation_text": null,
+            "offers_free_consultation": false
+        },
+        "total_settlements": {
+            "firm_total": {
+                "is_minimum": false,
+                "display_text": null,
+                "total_amount": null
+            },
+            "individual_cases": [
+            ]
+        },
+        "company_description": {
+            "word_count": 0,
+            "description": null
+        },
+        "law_firm_confirmation": {
+            "is_law_firm": true,
+            "is_personal_injury_firm": true
+        }
+    },
+    "extraction_timestamp": "2025-09-19T17:43:42.211031-04:00"
+}

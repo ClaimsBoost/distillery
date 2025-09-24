@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "year_founded"
+  ],
+  "properties": {
+    "year_founded": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1800,
+      "maximum": 2025
+    }
+  }
+}
