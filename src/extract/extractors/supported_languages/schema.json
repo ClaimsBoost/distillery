@@ -2,51 +2,51 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "required": [
-    "speaks_english",
-    "speaks_spanish",
-    "speaks_chinese",
-    "speaks_vietnamese",
-    "speaks_french",
-    "speaks_german",
-    "speaks_arabic",
-    "speaks_russian",
-    "speaks_portuguese",
-    "speaks_tagalog",
-    "speaks_hindi",
+    "supports_english",
+    "supports_spanish",
+    "supports_chinese",
+    "supports_vietnamese",
+    "supports_french",
+    "supports_german",
+    "supports_arabic",
+    "supports_russian",
+    "supports_portuguese",
+    "supports_tagalog",
+    "supports_hindi",
     "other_languages"
   ],
   "properties": {
-    "speaks_english": {
+    "supports_english": {
       "type": "boolean"
     },
-    "speaks_spanish": {
+    "supports_spanish": {
       "type": "boolean"
     },
-    "speaks_chinese": {
+    "supports_chinese": {
       "type": "boolean"
     },
-    "speaks_vietnamese": {
+    "supports_vietnamese": {
       "type": "boolean"
     },
-    "speaks_french": {
+    "supports_french": {
       "type": "boolean"
     },
-    "speaks_german": {
+    "supports_german": {
       "type": "boolean"
     },
-    "speaks_arabic": {
+    "supports_arabic": {
       "type": "boolean"
     },
-    "speaks_russian": {
+    "supports_russian": {
       "type": "boolean"
     },
-    "speaks_portuguese": {
+    "supports_portuguese": {
       "type": "boolean"
     },
-    "speaks_tagalog": {
+    "supports_tagalog": {
       "type": "boolean"
     },
-    "speaks_hindi": {
+    "supports_hindi": {
       "type": "boolean"
     },
     "other_languages": {

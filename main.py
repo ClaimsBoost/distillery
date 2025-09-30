@@ -268,7 +268,7 @@ Environment:
     extract_parser = subparsers.add_parser('extract', help='Extract data from embedded documents')
     extract_parser.add_argument('targets', nargs='+', help='Domains or file paths')
     extract_parser.add_argument('--type', required=True,
-                               choices=['office_locations', 'law_firm_confirmation', 'year_founded', 'total_settlements', 'languages_spoken', 'practice_areas', 'attorneys', 'social_media', 'company_description', 'states_served', 'contact_info', 'all'],
+                               choices=['office_locations', 'law_firm_confirmation', 'year_founded', 'total_settlements', 'supported_languages', 'practice_areas', 'attorneys', 'social_media', 'company_description', 'states_served', 'contact_info', 'all'],
                                help='Type of extraction (use "all" to run all extractors)')
     extract_parser.add_argument('--domain', action='store_true', help='Targets are domains')
     

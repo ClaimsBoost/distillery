@@ -46,8 +46,8 @@ Extracts the founding year or establishment date of the law firm.
 ### 7. Total Settlements (`total_settlements`)
 Identifies settlement amounts, case results, and monetary outcomes when available.
 
-### 8. Languages Spoken (`languages_spoken`)
-Extracts information about languages supported by the firm's staff.
+### 8. Supported Languages (`supported_languages`)
+Extracts comprehensive information about languages supported by the firm through any channel - website translations, staff capabilities, phone/call center support, interpreter services, or document translation.
 
 ### 9. Social Media (`social_media`)
 Identifies social media profiles and online presence information.
@@ -100,7 +100,7 @@ src/
         ├── attorneys/             # Attorney information
         ├── year_founded/          # Year founded
         ├── total_settlements/     # Settlement information
-        ├── languages_spoken/      # Languages supported
+        ├── supported_languages/   # Languages supported across all channels
         ├── social_media/          # Social media presence
         ├── company_description/   # Company description
         └── states_served/         # States served
@@ -264,7 +264,7 @@ python main.py extract --type office_locations --config config/custom.json --dom
 | `attorneys` | Attorney names, titles, credentials |
 | `year_founded` | Firm establishment date |
 | `total_settlements` | Settlement amounts and case results |
-| `languages_spoken` | Supported languages |
+| `supported_languages` | Languages supported across all channels |
 | `social_media` | Social media profiles |
 | `company_description` | Firm mission and overview |
 | `states_served` | Geographic service areas |

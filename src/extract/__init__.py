@@ -6,7 +6,7 @@ from .extractors.office_locations import OfficeLocationsExtractor
 from .extractors.law_firm_confirmation import LawFirmConfirmationExtractor
 from .extractors.year_founded import YearFoundedExtractor
 from .extractors.total_settlements import TotalSettlementsExtractor
-from .extractors.languages_spoken import LanguagesSpokenExtractor
+from .extractors.supported_languages import SupportedLanguagesExtractor
 from .extractors.practice_areas import PracticeAreasExtractor
 from .extractors.attorneys import AttorneysExtractor
 from .extractors.social_media import SocialMediaExtractor
@@ -20,7 +20,7 @@ __all__ = [
     'LawFirmConfirmationExtractor',
     'YearFoundedExtractor',
     'TotalSettlementsExtractor',
-    'LanguagesSpokenExtractor',
+    'SupportedLanguagesExtractor',
     'PracticeAreasExtractor',
     'AttorneysExtractor',
     'SocialMediaExtractor',
