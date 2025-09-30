@@ -5,7 +5,7 @@ A comprehensive document processing and information extraction system that extra
 ## Documentation
 
 - **[Setup Guide](SETUP.md)** - Production setup and GPU configuration
-- **[Full Documentation](docs/README.md)** - Complete system documentation and usage guide
+- **[Full Instructions](docs/INSTRUCTIONS.md)** - Complete system documentation and usage guide
 - **[Project Instructions](docs/CLAUDE.md)** - Development instructions and guidelines
 
 ## Quick Start
@@ -35,4 +35,4 @@ psql -U your_user -d your_database -v domain="'example.com'" -t -A -f sql/get_do
 ```
 
 For detailed setup instructions, see the [Setup Guide](SETUP.md).
-For complete documentation, see the [full documentation](docs/README.md).
+For complete documentation, see the [full instructions](docs/INSTRUCTIONS.md).

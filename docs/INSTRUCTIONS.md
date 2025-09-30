@@ -1,4 +1,8 @@
-# Law Firm Data Extraction System
+# Complete System Instructions and Documentation
+
+> **Purpose**: This document contains the complete instructions for using, configuring, and extending the Law Firm Data Extraction System. For a quick start, see the main [README](../README.md). For production setup, see the [Setup Guide](../SETUP.md).
+
+## Law Firm Data Extraction System
 
 A comprehensive document processing and information extraction system designed to extract 11 different types of structured data from law firm websites. The system uses RAG (Retrieval-Augmented Generation) with vector search to accurately extract various types of information including office locations, contact details, practice areas, attorney information, and business metrics from website content.
 

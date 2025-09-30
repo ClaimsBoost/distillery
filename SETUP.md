@@ -346,7 +346,7 @@ EXTRACTION_NUM_CTX=8192
 ## Support
 
 For issues or questions:
-1. Check the [documentation](docs/README.md)
+1. Check the [instructions](docs/INSTRUCTIONS.md)
 2. Review [troubleshooting](#troubleshooting) section
 3. Open an issue on GitHub
 4. Contact support at support@example.com
