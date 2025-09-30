@@ -117,17 +117,16 @@ fi
 
 # Setup environment file
 print_status "Setting up environment configuration..."
-if [ ! -f ".env" ]; then
-    if [ -f ".env.example" ]; then
-        cp .env.example .env
-        print_status "Created .env from .env.example"
-        print_warning "Please edit .env with your database credentials and API keys"
+if [ ! -f "config/.env" ]; then
+    if [ -f "config/.env.example" ]; then
+        cp config/.env.example config/.env
+        print_status "Created config/.env from config/.env.example"
+        print_warning "Please edit config/.env with your database credentials and API keys"
     else
-        print_error ".env.example not found. Creating from template..."
-        # Will be created by next task
+        print_error "config/.env.example not found. Please check your installation."
     fi
 else
-    print_status ".env file already exists"
+    print_status "config/.env file already exists"
 fi
 
 # Create necessary directories
@@ -143,19 +142,21 @@ print_warning "Database Setup Required:"
 echo "1. Ensure PostgreSQL is running with pgvector extension"
 echo "2. Create your database and run the SQL setup:"
 echo "   psql -U your_user -d your_database -f sql/get_domain_extractions.sql"
-echo "3. Configure your Supabase or local PostgreSQL connection in .env"
+echo "3. Configure your Supabase or local PostgreSQL connection in config/.env"
 echo ""
 
 # GPU optimization settings for RTX 3090
 if [[ "$GPU_INFO" == *"3090"* ]] || [[ "$GPU_INFO" == *"RTX 3090"* ]]; then
-    print_status "RTX 3090 detected. Applying optimized settings..."
+    print_status "RTX 3090 detected. Recommended GPU optimization settings..."
     echo ""
-    echo "Recommended .env settings for RTX 3090 (24GB VRAM):"
+    echo "Add these to your config/.env file for RTX 3090 (24GB VRAM):"
     echo "----------------------------------------"
+    echo "# GPU Optimizations"
     echo "EXTRACTION_CHUNK_SIZE=8000"
     echo "EXTRACTION_NUM_CTX=16384"
     echo "EXTRACTION_BATCH_SIZE=10"
-    echo "EMBEDDING_BATCH_SIZE=100"
+    echo "# Note: OLLAMA_NUM_GPU and OLLAMA_GPU_LAYERS can also be set"
+    echo "# for GPU acceleration with Ollama"
     echo "----------------------------------------"
 fi
 
@@ -164,7 +165,7 @@ print_status "Setup complete!"
 echo ""
 echo "Next steps:"
 echo "1. Activate the virtual environment: source venv/bin/activate"
-echo "2. Configure your .env file with database credentials"
+echo "2. Configure your config/.env file with database credentials"
 echo "3. Setup your database with the provided SQL scripts"
 echo "4. Run: python main.py --help to see available commands"
 echo ""

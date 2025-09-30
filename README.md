@@ -15,8 +15,8 @@ A comprehensive document processing and information extraction system that extra
 ./setup.sh
 
 # Configure environment
-cp .env.example .env
-# Edit .env with your database credentials and settings
+cp config/.env.example config/.env
+# Edit config/.env with your database credentials and settings
 
 # Activate virtual environment
 source venv/bin/activate

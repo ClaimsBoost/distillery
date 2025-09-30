@@ -36,27 +36,20 @@ Identifies the legal practice areas and specializations offered by the firm.
 ### 5. Attorney Information (`attorneys`)
 Extracts information about attorneys including names, titles, credentials, and specializations.
 
-### 6. Case Results (`case_results`)
-Extracts notable case outcomes, settlement amounts, verdicts, and success stories.
-
-### 7. Year Founded (`year_founded`)
+### 6. Year Founded (`year_founded`)
 Extracts the founding year or establishment date of the law firm.
 
-### 8. Total Settlements (`total_settlements`)
+### 7. Total Settlements (`total_settlements`)
 Identifies settlement amounts, case results, and monetary outcomes when available.
 
-### 9. Testimonials (`testimonials`)
-Extracts client testimonials, reviews, and feedback about the law firm's services.
-
-### 10. Languages Spoken (`languages_spoken`)
+### 8. Languages Spoken (`languages_spoken`)
 Extracts information about languages supported by the firm's staff.
 
-### 11. Social Media (`social_media`)
+### 9. Social Media (`social_media`)
 Identifies social media profiles and online presence information.
 
-### 12. Company Description (`company_description`)
+### 10. Company Description (`company_description`)
 Extracts descriptive information about the firm's mission, values, and overview.
-
 
 ### 11. States Served (`states_served`)
 Determines the geographic regions, states, or jurisdictions where the firm provides services.
@@ -101,10 +94,8 @@ src/
         ├── contact_info/          # Contact information
         ├── practice_areas/        # Practice areas
         ├── attorneys/             # Attorney information
-        ├── case_results/          # Case results and verdicts
         ├── year_founded/          # Year founded
         ├── total_settlements/     # Settlement information
-        ├── testimonials/          # Client testimonials
         ├── languages_spoken/      # Languages supported
         ├── social_media/          # Social media presence
         ├── company_description/   # Company description
@@ -115,7 +106,7 @@ src/
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.9+
 - PostgreSQL with pgvector extension (for local development)
 - Ollama with required models (see Configuration section)
 - Supabase account (for cloud storage and vector database)
@@ -150,7 +141,7 @@ cat src/database/supabase_setup.sql
 ```
 
 3. **Environment Variables**:
-Create a `.env` file in the `config/` directory:
+Create a `.env` file in the project root:
 ```bash
 # Database connections
 SUPABASE_URL=your_supabase_url
@@ -267,10 +258,8 @@ python main.py extract --type office_locations --config config/custom.json --dom
 | `contact_info` | Phone numbers, emails, contact methods |
 | `practice_areas` | Legal specializations and services |
 | `attorneys` | Attorney names, titles, credentials |
-| `case_results` | Notable case outcomes and verdicts |
 | `year_founded` | Firm establishment date |
 | `total_settlements` | Settlement amounts and case results |
-| `testimonials` | Client reviews and testimonials |
 | `languages_spoken` | Supported languages |
 | `social_media` | Social media profiles |
 | `company_description` | Firm mission and overview |
@@ -296,11 +285,14 @@ This SQL query combines the most recent extraction results for each data type in
 Test extraction against ground truth data:
 
 ```bash
-# Test a domain against ground truth
+# Test a specific domain against ground truth
 python main.py test-domain lawfirm.com
 
 # Re-embed before testing
 python main.py test-domain --re-embed lawfirm.com
+
+# Run comprehensive test suite with verbose output
+python main.py test --verbose
 
 # Use custom configuration
 python main.py test-domain --config config/custom.json lawfirm.com

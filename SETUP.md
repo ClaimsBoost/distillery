@@ -40,8 +40,8 @@ chmod +x setup.sh
 ./setup.sh
 
 # Configure environment
-cp .env.example .env
-# Edit .env with your settings
+cp config/.env.example config/.env
+# Edit config/.env with your settings
 
 # Activate virtual environment
 source venv/bin/activate
@@ -173,37 +173,35 @@ Add these to your `.env` file:
 EXTRACTION_CHUNK_SIZE=8000
 EXTRACTION_NUM_CTX=16384
 EXTRACTION_BATCH_SIZE=10
-EMBEDDING_BATCH_SIZE=100
 
-# Ollama GPU settings
-OLLAMA_NUM_GPU=1
-OLLAMA_GPU_LAYERS=35
+# Ollama GPU settings (uncomment to enable)
+# OLLAMA_NUM_GPU=1
+# OLLAMA_GPU_LAYERS=35
 ```
 
 ## Configuration
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in the config directory:
 
 ```env
+# Environment Configuration
+ENVIRONMENT=local  # Options: 'local' or 'production'
+
 # Database Configuration
-DATABASE_TYPE=supabase  # or 'postgres' for local
+# For Local PostgreSQL
+LOCAL_DATABASE_URI=postgresql://username:password@localhost:5432/law_firm_extraction
+
+# For Supabase (production/cloud)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_anon_key
-
-# OR for local PostgreSQL
-DATABASE_TYPE=postgres
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=law_firm_extraction
-POSTGRES_USER=extraction_user
-POSTGRES_PASSWORD=your_secure_password
+SUPABASE_DATABASE_URI=postgresql://username:password@host:5432/database
 
 # Ollama Configuration
 OLLAMA_BASE_URL=http://localhost:11434
-EXTRACTION_MODEL=llama3.1:8b
-EMBEDDING_MODEL=nomic-embed-text
+EXTRACTION_MODEL_TYPE=llama3.1:8b
+EXTRACTION_EMBEDDER_TYPE=nomic-embed-text
 
 # Processing Configuration
 EXTRACTION_TEMPERATURE=0.0
@@ -211,13 +209,10 @@ EXTRACTION_CHUNK_SIZE=8000
 EXTRACTION_NUM_CTX=16384
 EXTRACTION_BATCH_SIZE=10
 
-# Embedding Configuration
-EMBEDDING_BATCH_SIZE=100
-EMBEDDING_MAX_RETRIES=3
-
-# Vector Store Configuration
-VECTOR_STORE_SIMILARITY_THRESHOLD=0.7
-VECTOR_STORE_TOP_K=10
+# Extraction Configuration
+EXTRACTION_SIMILARITY_THRESHOLD=0.7
+EXTRACTION_K_CHUNKS=3
+EXTRACTION_RETRY_ATTEMPTS=3
 
 # Logging
 LOG_LEVEL=INFO
@@ -309,20 +304,18 @@ psql -U extraction_user -d law_firm_extraction -c "SELECT * FROM pg_extension WH
 ```env
 # Increase batch sizes for better throughput
 EXTRACTION_BATCH_SIZE=20
-EMBEDDING_BATCH_SIZE=200
 
 # Adjust chunk size based on available VRAM
 EXTRACTION_CHUNK_SIZE=10000
 
 # Enable parallel processing
-PARALLEL_WORKERS=4
+PERF_MAX_WORKERS=4
 ```
 
 #### For Limited Resources
 ```env
 # Reduce memory usage
 EXTRACTION_BATCH_SIZE=5
-EMBEDDING_BATCH_SIZE=50
 EXTRACTION_CHUNK_SIZE=4000
 
 # Use smaller context window
