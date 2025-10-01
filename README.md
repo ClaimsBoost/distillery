@@ -22,16 +22,18 @@ cp config/.env.example config/.env
 source venv/bin/activate
 
 # Embed domain content for processing
-python main.py embed --domain example.com
+python main.py embed example.com --domain  # Single domain
+python main.py embed --all                  # All pending domains
+python main.py embed --all --force          # Re-embed all domains
 
 # Extract specific data type
-python main.py extract --domain example.com --type contact_info
+python main.py extract example.com --type contact_info --domain
 
 # Extract all data types at once
-python main.py extract --domain example.com --type all
+python main.py extract example.com --type all --domain
 
 # Get combined extraction results
-psql -U your_user -d your_database -v domain="'example.com'" -t -A -f sql/get_domain_extractions.sql > output.json
+psql -U your_user -d your_database -v domain="'example.com'" -t -A -f sql/queries/get_domain_extractions.sql > output.json
 ```
 
 For detailed setup instructions, see the [Setup Guide](SETUP.md).

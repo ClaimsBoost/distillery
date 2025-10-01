@@ -280,7 +280,39 @@ class DocumentEmbedder:
                 
                 conn.commit()
                 logger.info(f"✅ Embedded {total_chunks} chunks from {len(documents)} documents")
-                
+
+                # Update domain_paths tracking if table exists
+                try:
+                    # Check if domain_paths table exists
+                    cur.execute("""
+                        SELECT EXISTS (
+                            SELECT 1 FROM information_schema.tables
+                            WHERE table_name = 'domain_paths'
+                        )
+                    """)
+                    if cur.fetchone()[0]:
+                        # Update tracking for each embedded document
+                        for doc in documents:
+                            # Extract path slug from document_id (e.g., "137law.com/index.md" -> "index")
+                            path_slug = doc['filename'].replace('.md', '') if 'filename' in doc else doc['document_id'].split('/')[-1].replace('.md', '')
+
+                            cur.execute("""
+                                UPDATE domain_paths
+                                SET is_embedded = true,
+                                    last_embedded_at = NOW()
+                                WHERE domain = %s
+                                AND path_slug = %s
+                            """, (doc['domain'], path_slug))
+
+                            if cur.rowcount > 0:
+                                logger.debug(f"Updated embedding tracking for {doc['domain']}/{path_slug}")
+
+                        conn.commit()
+                        logger.info(f"Updated domain_paths tracking for {len(documents)} documents")
+                except Exception as e:
+                    logger.warning(f"Could not update domain_paths tracking: {e}")
+                    # Don't fail the whole operation if tracking update fails
+
                 return {
                     'success': True,
                     'documents_processed': len(documents),

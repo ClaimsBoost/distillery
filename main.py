@@ -184,11 +184,17 @@ class Application:
         try:
             # Create and execute command
             command = EmbedCommand(self.settings)
-            results = command.execute(args.targets, is_domain=args.domain, force=args.force)
+
+            # Handle --all flag
+            if hasattr(args, 'all') and args.all:
+                results = command.execute_all(force=args.force)
+            else:
+                results = command.execute(args.targets, is_domain=args.domain, force=args.force)
+
             command.display_results(results)
-            
+
             return ExitCodes.SUCCESS
-            
+
         except Exception as e:
             logger.error(f"Embed command failed: {str(e)}")
             print(f"\n✗ Embed command failed: {str(e)}")
@@ -260,9 +266,11 @@ Environment:
     
     # Embed command
     embed_parser = subparsers.add_parser('embed', help='Embed documents into vector database')
-    embed_parser.add_argument('targets', nargs='+', help='File paths or domain names')
+    embed_parser.add_argument('targets', nargs='*', help='File paths or domain names (optional with --all)')
     embed_parser.add_argument('--domain', action='store_true', help='Targets are domains')
     embed_parser.add_argument('--force', action='store_true', help='Force re-embedding')
+    embed_parser.add_argument('--all', action='store_true',
+                            help='Embed all domains (pending only, or all with --force)')
     
     # Extract command
     extract_parser = subparsers.add_parser('extract', help='Extract data from embedded documents')

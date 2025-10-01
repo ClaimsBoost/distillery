@@ -133,22 +133,26 @@ sudo -u postgres psql
 CREATE DATABASE law_firm_extraction;
 CREATE USER extraction_user WITH ENCRYPTED PASSWORD 'your_secure_password';
 GRANT ALL PRIVILEGES ON DATABASE law_firm_extraction TO extraction_user;
+```
 
--- Enable pgvector extension
-\c law_firm_extraction
-CREATE EXTENSION IF NOT EXISTS vector;
+Then run the setup script:
+```bash
+psql -U postgres -d law_firm_extraction -f sql/postgres_setup.sql
 ```
 
 #### Supabase Setup
 1. Create a project at [supabase.com](https://supabase.com)
-2. Enable pgvector extension in the SQL Editor:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS vector;
-   ```
-3. Run the schema setup:
-   ```bash
-   psql "postgresql://[user]:[password]@[host]/postgres" -f sql/get_domain_extractions.sql
-   ```
+2. Run the complete setup script in SQL Editor:
+   - Go to SQL Editor in Supabase Dashboard
+   - Copy contents of `sql/supabase_setup.sql`
+   - Run the script
+
+The setup scripts include:
+- Vector extension (pgvector)
+- Document vectors table with 768 dimensions (nomic-embed-text)
+- Embedding tracking for domain_paths
+- Helper functions for similarity search
+- Domain statistics tracking
 
 ## GPU Configuration (RTX 3090)
 

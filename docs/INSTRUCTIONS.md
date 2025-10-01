@@ -217,15 +217,20 @@ Process and embed documents into the vector database:
 # Embed individual files
 python main.py embed path/to/file1.md path/to/file2.md
 
-# Embed entire domains
-python main.py embed --domain lawfirm1.com lawfirm2.com
+# Embed specific domains
+python main.py embed lawfirm1.com lawfirm2.com --domain
 
-# Force re-embedding (overwrite existing)
-python main.py embed --domain --force lawfirm.com
+# Embed all pending domains (not yet embedded)
+python main.py embed --all
 
-# Use custom configuration
-python main.py embed --config config/custom.json --domain lawfirm.com
+# Force re-embed all domains
+python main.py embed --all --force
+
+# Force re-embedding specific domain
+python main.py embed lawfirm.com --domain --force
 ```
+
+**Embedding Tracking**: The system automatically tracks which pages have been embedded using the `domain_paths` table with `is_embedded` and `last_embedded_at` fields.
 
 ### 2. Extract Command
 
@@ -464,17 +469,25 @@ The system uses the following main table:
 ### document_vectors
 ```sql
 CREATE TABLE document_vectors (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     document_id TEXT NOT NULL,
     content TEXT NOT NULL,
     metadata JSONB,
-    embedding VECTOR(768),
+    embedding VECTOR(768),  -- nomic-embed-text embeddings
     domain TEXT,
-    domain_id TEXT,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(document_id, content)
+    domain_id VARCHAR(12),
+    embedding_model TEXT DEFAULT 'nomic-embed-text',
+    embedding_dimension INTEGER DEFAULT 768,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+```
+
+### domain_paths (with embedding tracking)
+```sql
+-- Existing columns plus:
+is_embedded BOOLEAN DEFAULT false,
+last_embedded_at TIMESTAMP WITH TIME ZONE
 ```
 
 ## File Structure
@@ -486,8 +499,11 @@ distillery/
 ├── src/                    # Core application code
 │   └── extract/extractors/ # 11 modular extractors
 ├── config/                 # Configuration files
-├── sql/                   # SQL queries for data retrieval
-│   └── get_domain_extractions.sql  # Combined results query
+├── sql/                    # Database setup and queries
+│   ├── postgres_setup.sql  # Complete PostgreSQL setup
+│   ├── supabase_setup.sql  # Complete Supabase setup
+│   └── queries/            # Utility queries
+│       └── get_domain_extractions.sql  # Combined results query
 ├── evaluation/             # Evaluation system
 │   ├── scripts/           # Evaluation scripts
 │   │   └── evaluate.py    # Universal evaluation script
