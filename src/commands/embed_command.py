@@ -105,7 +105,22 @@ class EmbedCommand:
             }
 
         try:
-            with db_conn.get_postgres_connection() as (conn, cur):
+            # Use direct psycopg2 connection for both local and Supabase
+            import psycopg2
+
+            # Get the appropriate database URI
+            if db_conn.is_local:
+                db_uri = self.settings.database.local_database_uri
+            else:
+                db_uri = self.settings.database.supabase_database_uri
+
+            if not db_uri:
+                raise ValueError("No database URI configured")
+
+            conn = psycopg2.connect(db_uri)
+            cur = conn.cursor()
+
+            try:
                 # Check if domain_paths table exists
                 cur.execute("""
                     SELECT EXISTS (
@@ -148,6 +163,9 @@ class EmbedCommand:
                     operation_type = "all"
 
                 logger.info(f"Found {len(domains)} domains to process ({operation_type})")
+            finally:
+                cur.close()
+                conn.close()
 
                 if not domains:
                     return {

@@ -137,16 +137,13 @@ class DocumentEmbedder:
     def verify_embeddings(self, domain: str) -> Dict[str, Any]:
         """
         Verify embeddings are stored for a domain
-        
+
         Args:
             domain: Domain name to verify
-        
+
         Returns:
             Verification results
         """
-        if not self.db_conn.is_local:
-            return {'error': 'Verification only available for local database'}
-        
         try:
             with self.db_conn.get_postgres_connection() as (conn, cur):
                 # Count chunks for domain
@@ -175,16 +172,13 @@ class DocumentEmbedder:
     def clear_domain(self, domain: str) -> Dict[str, Any]:
         """
         Clear all embeddings for a domain
-        
+
         Args:
             domain: Domain name to clear
-        
+
         Returns:
             Result with number of deleted records
         """
-        if not self.db_conn.is_local:
-            return {'error': 'Clear only available for local database'}
-        
         try:
             deleted = self.db_conn.execute_query(
                 "DELETE FROM document_vectors WHERE domain = %s",
@@ -203,24 +197,18 @@ class DocumentEmbedder:
             logger.error(f"Clear failed: {str(e)}")
             return {'error': str(e)}
     
-    def _embed_documents(self, documents: List[Dict[str, Any]], 
+    def _embed_documents(self, documents: List[Dict[str, Any]],
                         force: bool = False) -> Dict[str, Any]:
         """
         Internal method to embed documents
-        
+
         Args:
             documents: List of document dictionaries
             force: Whether to re-embed existing documents
-        
+
         Returns:
             Embedding result summary
         """
-        if not self.db_conn.is_local:
-            return {
-                'success': False,
-                'error': 'Embedding requires local database with pgvector'
-            }
-        
         logger.info(f"Processing {len(documents)} documents")
         
         try:

@@ -54,20 +54,27 @@ class DatabaseConnection:
     def get_postgres_connection(self, cursor_factory=None):
         """
         Get PostgreSQL connection context manager
-        
+
         Args:
             cursor_factory: Optional cursor factory (e.g., RealDictCursor)
-        
+
         Yields:
             tuple: (connection, cursor)
         """
-        if not self.local_db_url:
-            raise ValueError("LOCAL_DATABASE_URL not set")
-        
+        # Use local database if available, otherwise use Supabase database URI
+        if self.use_local:
+            db_uri = self.local_db_url
+            if not db_uri:
+                raise ValueError("LOCAL_DATABASE_URL not set")
+        else:
+            db_uri = self.settings.database.supabase_database_uri
+            if not db_uri:
+                raise ValueError("SUPABASE_DATABASE_URI not set")
+
         conn = None
         cur = None
         try:
-            conn = psycopg2.connect(self.local_db_url)
+            conn = psycopg2.connect(db_uri)
             cur = conn.cursor(cursor_factory=cursor_factory) if cursor_factory else conn.cursor()
             yield conn, cur
         finally:
@@ -78,22 +85,19 @@ class DatabaseConnection:
     
     def execute_query(self, query: str, params: tuple = None, fetch: bool = True) -> Any:
         """
-        Execute a query on the local PostgreSQL database
-        
+        Execute a query on the PostgreSQL database
+
         Args:
             query: SQL query to execute
             params: Query parameters
             fetch: Whether to fetch results
-        
+
         Returns:
             Query results if fetch=True, otherwise row count
         """
-        if not self.local_db_url:
-            raise ValueError("LOCAL_DATABASE_URL not set")
-        
         with self.get_postgres_connection() as (conn, cur):
             cur.execute(query, params)
-            
+
             if fetch:
                 return cur.fetchall()
             else:
