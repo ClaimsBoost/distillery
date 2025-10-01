@@ -90,8 +90,9 @@ class ExtractCommand:
 
         all_results = []
 
-        for target in targets:
-            logger.info(f"Processing target: {target}")
+        for i, target in enumerate(targets, 1):
+            logger.info(f"[{i}/{len(targets)}] Processing target: {target}")
+            print(f"[{i}/{len(targets)}] Processing {target}...")
 
             if is_domain:
                 # Extract from entire domain
@@ -111,7 +112,7 @@ class ExtractCommand:
             # Store successful extraction in database
             if result and not result.get('error'):
                 self._store_extraction(target, extraction_type, result, is_domain)
-        
+
         # Format final results
         return {
             'extraction_type': extraction_type,
@@ -129,6 +130,67 @@ class ExtractCommand:
                 'k_chunks': self.settings.extraction.k_chunks
             }
         }
+
+    def execute_all(self, extraction_type: str) -> Dict[str, Any]:
+        """
+        Execute extraction for all domains with embeddings
+
+        Args:
+            extraction_type: Type of extraction (specific type or 'all')
+
+        Returns:
+            Extraction results
+        """
+        import psycopg2
+
+        try:
+            # Get the appropriate database URI
+            if self.db_conn.is_local:
+                db_uri = self.settings.database.local_database_uri
+            else:
+                db_uri = self.settings.database.supabase_database_uri
+
+            if not db_uri:
+                raise ValueError("No database URI configured")
+
+            conn = psycopg2.connect(db_uri)
+            cur = conn.cursor()
+
+            try:
+                # Get all domains that have embeddings
+                logger.info("Getting domains with embeddings...")
+                cur.execute("""
+                    SELECT DISTINCT domain
+                    FROM document_vectors
+                    ORDER BY domain
+                """)
+                domains = [row[0] for row in cur.fetchall()]
+
+                logger.info(f"Found {len(domains)} domains with embeddings")
+            finally:
+                cur.close()
+                conn.close()
+
+            if not domains:
+                return {
+                    'extraction_type': extraction_type,
+                    'total_targets': 0,
+                    'successful': 0,
+                    'target_type': 'domain',
+                    'message': 'No domains with embeddings found',
+                    'results': []
+                }
+
+            # Execute extraction on all domains
+            return self.execute(domains, extraction_type, is_domain=True)
+
+        except Exception as e:
+            logger.error(f"Execute all failed: {str(e)}")
+            return {
+                'error': str(e),
+                'total_targets': 0,
+                'successful': 0
+            }
     
     def _execute_all_extractors(self, targets: List[str], is_domain: bool) -> Dict[str, Any]:
         """

@@ -205,15 +205,23 @@ class Application:
         try:
             # Create and execute command
             command = ExtractCommand(self.settings, self.supabase_client)
-            results = command.execute(
-                args.targets, 
-                extraction_type=args.type,
-                is_domain=args.domain
-            )
+
+            # Handle --all flag
+            if hasattr(args, 'all') and args.all:
+                results = command.execute_all(extraction_type=args.type)
+            else:
+                if not args.targets:
+                    print("\n✗ Error: targets are required when --all is not specified")
+                    return ExitCodes.GENERAL_ERROR
+                results = command.execute(
+                    args.targets,
+                    extraction_type=args.type,
+                    is_domain=args.domain
+                )
             command.display_results(results)
-            
+
             return ExitCodes.SUCCESS
-            
+
         except Exception as e:
             logger.error(f"Extract command failed: {str(e)}")
             print(f"\n✗ Extract command failed: {str(e)}")
@@ -274,11 +282,13 @@ Environment:
     
     # Extract command
     extract_parser = subparsers.add_parser('extract', help='Extract data from embedded documents')
-    extract_parser.add_argument('targets', nargs='+', help='Domains or file paths')
+    extract_parser.add_argument('targets', nargs='*', help='Domains or file paths (optional with --all)')
     extract_parser.add_argument('--type', required=True,
                                choices=['office_locations', 'law_firm_confirmation', 'year_founded', 'total_settlements', 'supported_languages', 'practice_areas', 'attorneys', 'social_media', 'company_description', 'states_served', 'contact_info', 'all'],
                                help='Type of extraction (use "all" to run all extractors)')
     extract_parser.add_argument('--domain', action='store_true', help='Targets are domains')
+    extract_parser.add_argument('--all', action='store_true',
+                               help='Extract from all domains with embeddings')
     
     # Test command
     test_parser = subparsers.add_parser('test-domain', help='Test extraction for a domain')
