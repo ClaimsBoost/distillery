@@ -1,6 +1,5 @@
 -- Complete Supabase Database Setup for Law Firm RAG System
--- Local: nomic-embed-text (768 dimensions)
--- Production: BGE-large-en-v1.5 (1024 dimensions)
+-- Both Local and Production: nomic-embed-text (768 dimensions)
 
 -- ============================================
 -- 1. Enable Required Extensions
@@ -15,23 +14,23 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; -- For UUID generation
 -- Tables use IF NOT EXISTS to be safe in production environment
 
 -- ============================================
--- 3. Create Main Document Vectors Table (Production)
+-- 3. Create Main Document Vectors Table
 -- ============================================
--- Production uses BGE-large-en-v1.5 (1024 dimensions)
+-- Uses nomic-embed-text (768 dimensions)
 CREATE TABLE IF NOT EXISTS document_vectors (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   document_id TEXT NOT NULL,
   content TEXT NOT NULL,
-  embedding vector(1024),  -- BGE-large-en-v1.5 uses 1024 dimensions
+  embedding vector(768),  -- nomic-embed-text uses 768 dimensions
   metadata JSONB DEFAULT '{}',
-  
+
   -- Domain-aware fields
   domain TEXT,
   domain_id VARCHAR(12),
-  
+
   -- Model tracking
-  embedding_model TEXT DEFAULT 'BAAI/bge-large-en-v1.5',
-  embedding_dimension INTEGER DEFAULT 1024,
+  embedding_model TEXT DEFAULT 'nomic-embed-text',
+  embedding_dimension INTEGER DEFAULT 768,
   
   -- Tracking fields
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -72,9 +71,9 @@ ON document_vectors(created_at);
 -- 5. Create Vector Matching Functions
 -- ============================================
 
--- Production match function (BGE-large-en-v1.5 - 1024 dimensions)
+-- Match function (nomic-embed-text - 768 dimensions)
 CREATE OR REPLACE FUNCTION match_documents(
-  query_embedding vector(1024),
+  query_embedding vector(768),
   match_count int DEFAULT 5,
   filter jsonb DEFAULT '{}'::jsonb
 ) RETURNS TABLE(
@@ -211,9 +210,6 @@ ORDER BY tablename;
 -- 3. Set environment variables:
 --    - SUPABASE_URL
 --    - SUPABASE_KEY
--- 4. Download embedding models for Ollama:
---    Local: ollama pull nomic-embed-text
---    Production: ollama pull bge-large
--- 5. The system automatically uses:
---    - nomic-embed-text (768 dims) for local/test
---    - BGE-large-en-v1.5 (1024 dims) for production
+-- 4. Download embedding model for Ollama:
+--    ollama pull nomic-embed-text
+-- 5. The system uses nomic-embed-text (768 dims) for both local and production
