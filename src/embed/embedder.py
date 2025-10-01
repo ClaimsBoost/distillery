@@ -281,8 +281,14 @@ class DocumentEmbedder:
                     if cur.fetchone()[0]:
                         # Update tracking for each embedded document
                         for doc in documents:
-                            # Extract path slug from document_id (e.g., "137law.com/index.md" -> "index")
-                            path_slug = doc['filename'].replace('.md', '') if 'filename' in doc else doc['document_id'].split('/')[-1].replace('.md', '')
+                            # Extract path slug from filename, preserving subfolder structure
+                            # e.g., "atlanta/mri-scan.md" -> "atlanta/mri-scan"
+                            # e.g., "index.md" -> "index"
+                            if 'filename' in doc:
+                                path_slug = doc['filename'].replace('.md', '')
+                            else:
+                                # Fallback: extract from document_id
+                                path_slug = doc['document_id'].split('/')[-1].replace('.md', '')
 
                             cur.execute("""
                                 UPDATE domain_paths

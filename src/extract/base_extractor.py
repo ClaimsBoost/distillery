@@ -191,6 +191,9 @@ class BaseExtractor(ABC):
             if result:
                 # Add the API request to the result for storage
                 result['_api_request'] = api_payload
+                # Add chunk IDs if provided in metadata
+                if metadata and 'chunk_ids' in metadata:
+                    result['chunk_ids'] = metadata['chunk_ids']
                 return result
 
         return {"error": "Failed to extract data"}
@@ -257,10 +260,14 @@ class BaseExtractor(ABC):
             return {"chunks": [{"content": doc.page_content, "metadata": doc.metadata} for doc in chunks]}
 
         # Combine chunk content - take up to 10 chunks
-        combined_content = "\n\n".join([doc.page_content for doc in chunks[:10]])
+        chunks_to_use = chunks[:10]
+        combined_content = "\n\n".join([doc.page_content for doc in chunks_to_use])
+
+        # Extract chunk IDs from metadata
+        chunk_ids = [doc.metadata.get('id') for doc in chunks_to_use if doc.metadata.get('id')]
 
         # Extract using the base extract method
-        return self.extract(combined_content, {"domain": domain})
+        return self.extract(combined_content, {"domain": domain, "chunk_ids": chunk_ids})
 
     def extract_from_document(self, document_id: str) -> Dict[str, Any]:
         """
@@ -285,10 +292,14 @@ class BaseExtractor(ABC):
         )
 
         # Combine chunk content - take up to 10 chunks
-        combined_content = "\n\n".join([doc.page_content for doc in chunks[:10]])
+        chunks_to_use = chunks[:10]
+        combined_content = "\n\n".join([doc.page_content for doc in chunks_to_use])
+
+        # Extract chunk IDs from metadata
+        chunk_ids = [doc.metadata.get('id') for doc in chunks_to_use if doc.metadata.get('id')]
 
         # Extract using the base extract method
-        return self.extract(combined_content, {"document_id": document_id})
+        return self.extract(combined_content, {"document_id": document_id, "chunk_ids": chunk_ids})
 
     def _load_extraction_schema(self) -> Optional[Dict[str, Any]]:
         """

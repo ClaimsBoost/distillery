@@ -57,9 +57,9 @@ class ExtractionSettings(BaseSettings):
     chunk_overlap: int = Field(500, env='EXTRACTION_CHUNK_OVERLAP')
     
     # Model parameters
-    model_type: str = Field('llama3.1:8b', env='EXTRACTION_MODEL_TYPE')
-    embedder_type: str = Field('nomic-embed-text', env='EXTRACTION_EMBEDDER_TYPE')
-    temperature: float = Field(0.0, env='EXTRACTION_TEMPERATURE')
+    model_type: str = Field(..., env='EXTRACTION_MODEL_TYPE')  # Required, no default
+    embedder_type: str = Field(..., env='EXTRACTION_EMBEDDER_TYPE')
+    temperature: float = Field(0.2, env='EXTRACTION_TEMPERATURE')
     top_p: float = Field(0.95, env='EXTRACTION_TOP_P')
     max_tokens: int = Field(2048, env='EXTRACTION_MAX_TOKENS')
     seed: int = Field(42, env='EXTRACTION_SEED')

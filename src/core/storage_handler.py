@@ -64,31 +64,65 @@ class StorageHandler:
     
     def list_files_for_domain(self, domain: str) -> List[str]:
         """
-        List all markdown files for a specific domain
-        
+        List all markdown files for a specific domain (including nested folders)
+
         Args:
             domain: Domain name (e.g., '137law.com')
-        
+
         Returns:
-            List of file names
+            List of file names (with relative paths for nested files)
         """
         try:
             # Path structure is {domain}/markdown/
-            path = f"{domain}/markdown" if self.base_path == '' else f"{self.base_path}/{domain}"
-            items = self.client.storage.from_(self.bucket).list(path)
-            
-            # Filter for markdown files
-            files = []
-            for item in items:
-                if item.get('id') and item['name'].endswith('.md'):
-                    files.append(item['name'])
-            
-            logger.info(f"Found {len(files)} markdown files for domain {domain}")
-            return sorted(files)
-            
+            base_path = f"{domain}/markdown" if self.base_path == '' else f"{self.base_path}/{domain}"
+
+            # Recursively list all files
+            all_files = self._list_files_recursive(base_path)
+
+            logger.info(f"Found {len(all_files)} markdown files for domain {domain}")
+            return sorted(all_files)
+
         except Exception as e:
             logger.error(f"Failed to list files for domain {domain}: {e}")
             return []
+
+    def _list_files_recursive(self, path: str, relative_prefix: str = "") -> List[str]:
+        """
+        Recursively list all markdown files in a path and its subfolders
+
+        Args:
+            path: The path to list
+            relative_prefix: Prefix to add to filenames for nested folders
+
+        Returns:
+            List of file names with relative paths
+        """
+        files = []
+        try:
+            items = self.client.storage.from_(self.bucket).list(path)
+
+            for item in items:
+                item_name = item.get('name', '')
+
+                # Check if it's a file (has an 'id' and metadata)
+                if item.get('id') and item_name.endswith('.md'):
+                    # Add file with its relative path
+                    full_relative_path = f"{relative_prefix}{item_name}" if relative_prefix else item_name
+                    files.append(full_relative_path)
+
+                # Check if it's a folder (no 'id', no metadata, or metadata is None)
+                elif not item.get('id') or not item.get('metadata'):
+                    # Recursively list this subfolder
+                    subfolder_path = f"{path}/{item_name}"
+                    subfolder_prefix = f"{relative_prefix}{item_name}/" if relative_prefix else f"{item_name}/"
+                    subfolder_files = self._list_files_recursive(subfolder_path, subfolder_prefix)
+                    files.extend(subfolder_files)
+                    logger.debug(f"Found {len(subfolder_files)} files in subfolder {subfolder_path}")
+
+        except Exception as e:
+            logger.warning(f"Error listing files in {path}: {e}")
+
+        return files
     
     def download_file(self, domain: str, filename: str) -> Optional[str]:
         """
