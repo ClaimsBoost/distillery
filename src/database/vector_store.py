@@ -241,17 +241,46 @@ class SupabaseVectorStoreWrapper(BaseVectorStore):
         self.client = client
         self.embeddings = embeddings
         self.table_name = table_name
+        self.query_name = "match_documents"
+
+        # Get database URI for direct SQL access (for boosted search)
+        settings = get_settings()
+        self.db_uri = settings.database.supabase_database_uri
+
         self.store = SupabaseVectorStore(
             client=client,
             embedding=embeddings,
             table_name=table_name,
-            query_name="match_documents"
+            query_name=self.query_name
         )
         logger.info("Initialized SupabaseVectorStore")
 
     def similarity_search(self, query: str, k: int = 5, filter: Optional[Dict] = None) -> List[Document]:
-        """Perform similarity search"""
-        return self.store.similarity_search(query, k=k, filter=filter)
+        """Perform similarity search with ID included in metadata"""
+        # Generate embedding for query
+        query_embedding = self.embeddings.embed_query(query)
+
+        # Call the match_documents RPC function directly
+        match_documents_params = {'query_embedding': query_embedding}
+        if filter:
+            match_documents_params['filter'] = filter
+
+        response = self.client.rpc(
+            self.query_name,
+            match_documents_params
+        ).limit(k).execute()
+
+        # Convert to Documents with ID in metadata
+        docs = []
+        for row in response.data:
+            metadata = row.get('metadata') or {}
+            metadata['id'] = str(row['id'])  # Add the ID to metadata
+            docs.append(Document(
+                page_content=row['content'],
+                metadata=metadata
+            ))
+
+        return docs
 
     def similarity_search_with_metadata_boost(self, query: str, k: int = 5,
                                             filter: Optional[Dict] = None,
@@ -283,12 +312,72 @@ class SupabaseVectorStoreWrapper(BaseVectorStore):
 
             # Generate embedding for query
             query_embedding = self.embeddings.embed_query(query)
+            # Convert to numpy array for proper pgvector handling
+            query_embedding = np.array(query_embedding)
 
-            # Build the RPC query with metadata boosting
-            # Note: This assumes you have a custom RPC function in Supabase
-            # For now, we'll fall back to regular search with a warning
-            logger.warning(f"Supabase metadata boost for {boost_field} not yet implemented - using regular search")
-            return self.similarity_search(query, k, filter)
+            # Connect to Supabase database directly
+            conn = psycopg2.connect(self.db_uri)
+            # Register vector type for this connection
+            register_vector(conn)
+            cur = conn.cursor()
+
+            try:
+                # WORKAROUND: Same query planner issue - fetch more and limit in Python
+                fetch_limit = max(k * 10, 100)
+
+                # Build SQL with dynamic field names
+                order_clause = f"""
+                    CASE WHEN metadata->>'{boost_field}' = 'true' THEN 0 ELSE 1 END,
+                    CAST(COALESCE(metadata->>'{count_field}', '0') AS INTEGER) DESC,
+                    embedding <=> %s::vector
+                """
+
+                if filter and 'domain_id' in filter:
+                    sql = f"""
+                    SELECT id, content, metadata, embedding <=> %s::vector as distance
+                    FROM document_vectors
+                    WHERE domain_id = %s
+                    ORDER BY {order_clause}
+                    LIMIT %s
+                    """
+                    cur.execute(sql, (query_embedding, filter['domain_id'], query_embedding, fetch_limit))
+                elif filter and 'document_id' in filter:
+                    sql = f"""
+                    SELECT id, content, metadata, embedding <=> %s::vector as distance
+                    FROM document_vectors
+                    WHERE document_id = %s
+                    ORDER BY {order_clause}
+                    LIMIT %s
+                    """
+                    cur.execute(sql, (query_embedding, filter['document_id'], query_embedding, fetch_limit))
+                else:
+                    sql = f"""
+                    SELECT id, content, metadata, embedding <=> %s::vector as distance
+                    FROM document_vectors
+                    ORDER BY {order_clause}
+                    LIMIT %s
+                    """
+                    cur.execute(sql, (query_embedding, query_embedding, fetch_limit))
+
+                results = cur.fetchall()
+                docs = []
+                # Only take the first k results (workaround for query planner issue)
+                for row in results[:k]:
+                    metadata = row[2] or {}
+                    metadata['id'] = str(row[0])  # Add the ID to metadata
+                    docs.append(Document(page_content=row[1], metadata=metadata))
+
+                # Log what we retrieved
+                logger.info(f"Retrieved {len(docs)} chunks with {boost_field} boosting")
+                for i, doc in enumerate(docs[:3]):
+                    meta = doc.metadata
+                    logger.debug(f"Chunk {i}: {boost_field}={meta.get(boost_field)}, {count_field}={meta.get(count_field)}")
+
+                return docs
+
+            finally:
+                cur.close()
+                conn.close()
         else:
             # For no boost field, use regular search
             return self.similarity_search(query, k, filter)
