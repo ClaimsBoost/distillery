@@ -28,7 +28,7 @@ def get_llm_provider(settings, provider: Optional[str] = None) -> LLMProvider:
     """
     # Use provider from settings if not explicitly provided
     if provider is None:
-        provider = getattr(settings.extraction, 'provider', 'ollama')
+        provider = settings.extraction.llm_provider
 
     provider = provider.lower()
 

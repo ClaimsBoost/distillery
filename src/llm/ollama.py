@@ -19,7 +19,9 @@ class OllamaProvider(LLMProvider):
     def __init__(self, settings):
         super().__init__(settings)
         self.base_url = settings.ollama.base_url
-        self.model = settings.extraction.model_type
+        self.model = settings.extraction.ollama_model
+        if not self.model:
+            raise ValueError("EXTRACTION_OLLAMA_MODEL must be set when using Ollama provider")
 
     def generate(self,
                  prompt: str,
@@ -44,9 +46,9 @@ class OllamaProvider(LLMProvider):
         ollama_options = {
             "temperature": self.settings.extraction.temperature,
             "top_p": self.settings.extraction.top_p,
-            "seed": self.settings.extraction.seed,
-            "num_ctx": self.settings.extraction.num_ctx,
-            "num_predict": options.get("max_tokens", self.settings.extraction.max_tokens)
+            "seed": self.settings.ollama.extraction_seed,
+            "num_ctx": self.settings.ollama.num_ctx,
+            "num_predict": options.get("max_tokens")  # Must be provided by caller
         }
 
         # Override with provided options

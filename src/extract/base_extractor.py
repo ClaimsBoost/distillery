@@ -85,7 +85,8 @@ class BaseExtractor(ABC):
             chunk_overlap=self.settings.extraction.chunk_overlap
         )
 
-        logger.info(f"{self.__class__.__name__} initialized with model: {self.settings.extraction.model_type}")
+        model_name = self.settings.extraction.ollama_model if self.settings.extraction.llm_provider == 'ollama' else self.settings.extraction.gemini_model
+        logger.info(f"{self.__class__.__name__} initialized with provider: {self.settings.extraction.llm_provider}, model: {model_name}")
 
     def _get_or_create_provider(self) -> LLMProvider:
         """
@@ -108,12 +109,9 @@ class BaseExtractor(ABC):
         Returns:
             Number of tokens to predict
         """
-        # Get OUTPUT_SIZE from config or fall back to settings
-        try:
-            config = self._get_config()
-            return config.OUTPUT_SIZE
-        except:
-            return self.settings.extraction.max_tokens
+        # Get OUTPUT_SIZE from config (required for all extractors)
+        config = self._get_config()
+        return config.OUTPUT_SIZE
 
     def clean_markdown(self, markdown_content: str) -> str:
         """
@@ -341,16 +339,17 @@ class BaseExtractor(ABC):
         options = {
             "temperature": self.settings.extraction.temperature,
             "top_p": self.settings.extraction.top_p,
-            "seed": self.settings.extraction.seed,
-            "max_tokens": self._get_num_predict()  # Varies by extractor type
         }
 
         # Add provider-specific options
         if provider.provider_name == "ollama":
-            options["num_ctx"] = self.settings.extraction.num_ctx
+            # Ollama needs max_tokens (num_predict)
+            options["max_tokens"] = self._get_num_predict()  # Varies by extractor type
+            options["num_ctx"] = self.settings.ollama.num_ctx
+            options["seed"] = self.settings.ollama.extraction_seed
 
         # Log what extractor and output size is being used
-        logger.debug(f"{self.extraction_name} using provider={provider.provider_name}, max_tokens={options['max_tokens']}")
+        logger.debug(f"{self.extraction_name} using provider={provider.provider_name}, max_tokens={options.get('max_tokens', 'default')}")
 
         try:
             # Call provider with appropriate parameters

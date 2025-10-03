@@ -18,19 +18,13 @@ class DatabaseSettings(BaseSettings):
     supabase_url: Optional[str] = Field(None, env='SUPABASE_URL')
     supabase_key: Optional[str] = Field(None, env='SUPABASE_KEY')
     
-    # Connection pool settings
-    max_connections: int = Field(20, env='DB_MAX_CONNECTIONS')
-    connection_timeout: int = Field(30, env='DB_TIMEOUT')
-    pool_size: int = Field(5, env='DB_POOL_SIZE')
-    
     class Config:
         env_prefix = ''
 
 
 class StorageSettings(BaseSettings):
-    """Storage configuration settings."""
-    
-    type: Literal['supabase', 'local'] = Field('supabase', env='STORAGE_TYPE')
+    """Storage configuration settings for Supabase."""
+
     bucket: str = Field('law-firm-websites', env='STORAGE_BUCKET')
     base_path: str = Field('', env='STORAGE_BASE_PATH')
     
@@ -38,52 +32,42 @@ class StorageSettings(BaseSettings):
         env_prefix = 'STORAGE_'
 
 
-class VectorStoreSettings(BaseSettings):
-    """Vector store configuration settings."""
-    
-    table_name: str = Field('document_vectors', env='VECTOR_TABLE_NAME')
-    embedding_dimension: int = Field(768, env='VECTOR_EMBEDDING_DIM')
-    query_name: str = Field('match_documents', env='VECTOR_QUERY_NAME')
-    
-    class Config:
-        env_prefix = 'VECTOR_'
 
 
 class ExtractionSettings(BaseSettings):
     """Extraction pipeline configuration settings."""
 
-    # Provider settings
-    provider: str = Field('ollama', env='EXTRACTION_PROVIDER')  # ollama or gemini
+    # LLM Provider settings
+    llm_provider: str = Field('ollama', env='EXTRACTION_LLM_PROVIDER')  # ollama or gemini
+
+    # Model settings for each provider
+    ollama_model: Optional[str] = Field(None, env='EXTRACTION_OLLAMA_MODEL')
     gemini_model: str = Field('gemini-1.5-flash', env='EXTRACTION_GEMINI_MODEL')
     gemini_api_key: Optional[str] = Field(None, env='EXTRACTION_GEMINI_API_KEY')
 
     # Chunking parameters
-    chunk_size: int = Field(5000, env='EXTRACTION_CHUNK_SIZE')
-    chunk_overlap: int = Field(500, env='EXTRACTION_CHUNK_OVERLAP')
+    chunk_size: int = Field(..., env='EXTRACTION_CHUNK_SIZE')
+    chunk_overlap: int = Field(..., env='EXTRACTION_CHUNK_OVERLAP')
 
-    # Model parameters (for Ollama)
-    model_type: str = Field(..., env='EXTRACTION_MODEL_TYPE')  # Required, no default
+    # Embedder settings
     embedder_type: str = Field(..., env='EXTRACTION_EMBEDDER_TYPE')
-    temperature: float = Field(0.2, env='EXTRACTION_TEMPERATURE')
-    top_p: float = Field(0.95, env='EXTRACTION_TOP_P')
-    max_tokens: int = Field(2048, env='EXTRACTION_MAX_TOKENS')
-    seed: int = Field(42, env='EXTRACTION_SEED')
-    num_ctx: int = Field(8192, env='EXTRACTION_NUM_CTX')
 
-    # Retrieval parameters
-    k_chunks: int = Field(3, env='EXTRACTION_K_CHUNKS')
-    similarity_threshold: float = Field(0.7, env='EXTRACTION_SIMILARITY_THRESHOLD')
+    # Generation parameters (used by both providers)
+    temperature: float = Field(..., env='EXTRACTION_TEMPERATURE')
+    top_p: float = Field(..., env='EXTRACTION_TOP_P')
 
-    # Processing parameters
-    batch_size: int = Field(5, env='EXTRACTION_BATCH_SIZE')
-    retry_attempts: int = Field(3, env='EXTRACTION_RETRY_ATTEMPTS')
-
-    # Feature flags
-    use_reranking: bool = Field(False, env='EXTRACTION_USE_RERANKING')
-    use_query_expansion: bool = Field(False, env='EXTRACTION_USE_QUERY_EXPANSION')
-    extract_confidence_scores: bool = Field(True, env='EXTRACTION_CONFIDENCE_SCORES')
+    # Cost tracking
     track_costs: bool = Field(True, env='EXTRACTION_TRACK_COSTS')
     
+    @field_validator('ollama_model')
+    @classmethod
+    def validate_ollama_model(cls, v, info):
+        """Ensure ollama_model is set when using Ollama provider."""
+        if info.data.get('llm_provider') == 'ollama' and not v:
+            raise ValueError('EXTRACTION_OLLAMA_MODEL must be set when using Ollama provider')
+        return v
+
+
     @field_validator('chunk_overlap')
     @classmethod
     def validate_chunk_overlap(cls, v, info):
@@ -108,14 +92,6 @@ class ExtractionSettings(BaseSettings):
             raise ValueError('top_p must be between 0 and 1')
         return v
     
-    @field_validator('similarity_threshold')
-    @classmethod
-    def validate_similarity_threshold(cls, v):
-        """Ensure similarity_threshold is between 0 and 1."""
-        if not 0 <= v <= 1:
-            raise ValueError('similarity_threshold must be between 0 and 1')
-        return v
-    
     class Config:
         env_prefix = 'EXTRACTION_'
 
@@ -125,6 +101,10 @@ class OllamaSettings(BaseSettings):
 
     base_url: str = Field('http://localhost:11434', env='OLLAMA_BASE_URL')
     timeout: int = Field(30000, env='OLLAMA_TIMEOUT')
+
+    # Ollama-specific extraction parameters
+    extraction_seed: int = Field(42, env='OLLAMA_EXTRACTION_SEED')
+    num_ctx: int = Field(8192, env='OLLAMA_NUM_CTX')
 
     class Config:
         env_prefix = 'OLLAMA_'
@@ -155,18 +135,6 @@ class LoggingSettings(BaseSettings):
         env_prefix = 'LOG_'
 
 
-class PerformanceSettings(BaseSettings):
-    """Performance tuning settings."""
-    
-    max_workers: int = Field(4, env='PERF_MAX_WORKERS')
-    enable_caching: bool = Field(True, env='PERF_ENABLE_CACHING')
-    cache_ttl_seconds: int = Field(3600, env='PERF_CACHE_TTL')
-    use_mmap: bool = Field(True, env='PERF_USE_MMAP')
-    use_mlock: bool = Field(False, env='PERF_USE_MLOCK')
-    
-    class Config:
-        env_prefix = 'PERF_'
-
 
 class PathSettings(BaseSettings):
     """File path configuration."""
@@ -193,12 +161,10 @@ class Settings(BaseSettings):
     # Sub-configurations
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
-    vector_store: VectorStoreSettings = Field(default_factory=VectorStoreSettings)
     extraction: ExtractionSettings = Field(default_factory=ExtractionSettings)
     ollama: OllamaSettings = Field(default_factory=OllamaSettings)
     gemini: GeminiSettings = Field(default_factory=GeminiSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
-    performance: PerformanceSettings = Field(default_factory=PerformanceSettings)
     paths: PathSettings = Field(default_factory=PathSettings)
     
     class Config:
@@ -226,10 +192,6 @@ class Settings(BaseSettings):
         else:
             raise ValueError(f"No database URI configured for {self.environment} environment")
     
-    @property
-    def use_local_vector_store(self) -> bool:
-        """Check if using local vector store."""
-        return self.is_local
     
     def validate_config(self) -> bool:
         """Validate that required configuration is present."""
@@ -241,8 +203,8 @@ class Settings(BaseSettings):
         elif self.is_local and not self.database.local_database_uri:
             errors.append("LOCAL_DATABASE_URI is not set for local environment")
         
-        # Check Supabase credentials if needed
-        if self.storage.type == 'supabase' or self.is_production:
+        # Check Supabase credentials if in production (storage always uses Supabase)
+        if self.is_production:
             if not self.database.supabase_url:
                 errors.append("SUPABASE_URL is not set")
             if not self.database.supabase_key:

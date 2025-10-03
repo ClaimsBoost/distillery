@@ -125,9 +125,9 @@ class ExtractCommand:
                 'successful': sum(1 for r in all_results if r.get('data') and not r['data'].get('error'))
             },
             'config': {
-                'model': self.settings.extraction.model_type,
-                'temperature': self.settings.extraction.temperature,
-                'k_chunks': self.settings.extraction.k_chunks
+                'provider': self.settings.extraction.llm_provider,
+                'model': self.settings.extraction.ollama_model if self.settings.extraction.llm_provider == 'ollama' else self.settings.extraction.gemini_model,
+                'temperature': self.settings.extraction.temperature
             }
         }
 
@@ -270,9 +270,9 @@ class ExtractCommand:
                 'by_extractor': extractor_summary
             },
             'config': {
-                'model': self.settings.extraction.model_type,
-                'temperature': self.settings.extraction.temperature,
-                'k_chunks': self.settings.extraction.k_chunks
+                'provider': self.settings.extraction.llm_provider,
+                'model': self.settings.extraction.ollama_model if self.settings.extraction.llm_provider == 'ollama' else self.settings.extraction.gemini_model,
+                'temperature': self.settings.extraction.temperature
             }
         }
 
@@ -340,7 +340,7 @@ class ExtractCommand:
                     domain,
                     path_id,
                     extraction_type,
-                    self.settings.extraction.model_type,  # Use model as version
+                    f"{self.settings.extraction.llm_provider}:{self.settings.extraction.ollama_model if self.settings.extraction.llm_provider == 'ollama' else self.settings.extraction.gemini_model}",  # Use provider:model as version
                     json.dumps(clean_result),
                     datetime.now(),
                     datetime.now(),

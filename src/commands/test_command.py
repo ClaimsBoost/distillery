@@ -29,7 +29,6 @@ class TestCommand:
         """
         self.settings = settings or get_settings()
         self.storage_config = {
-            'type': self.settings.storage.type,
             'bucket': self.settings.storage.bucket,
             'base_path': self.settings.storage.base_path
         }

@@ -9,8 +9,8 @@ Local LLM provider using Ollama. Free to use with your own hardware.
 
 **Configuration:**
 ```bash
-EXTRACTION_PROVIDER=ollama
-EXTRACTION_MODEL_TYPE=llama3.1:8b  # Or your preferred model
+EXTRACTION_LLM_PROVIDER=ollama
+EXTRACTION_OLLAMA_MODEL=llama3.1:8b  # Required for Ollama
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
@@ -24,9 +24,9 @@ pip install -r requirements-gemini.txt
 
 **Configuration:**
 ```bash
-EXTRACTION_PROVIDER=gemini
-GEMINI_API_KEY=your_api_key_here
-EXTRACTION_GEMINI_MODEL=gemini-1.5-flash  # or gemini-1.5-pro
+EXTRACTION_LLM_PROVIDER=gemini
+EXTRACTION_GEMINI_MODEL=gemini-2.5-flash  # or gemini-1.5-flash, gemini-1.5-pro
+GEMINI_API_KEY=your_api_key_here  # or EXTRACTION_GEMINI_API_KEY
 ```
 
 ## Cost Analysis
@@ -78,15 +78,16 @@ Set different providers for different environments:
 
 ```bash
 # Development
-EXTRACTION_PROVIDER=ollama
+EXTRACTION_LLM_PROVIDER=ollama
+EXTRACTION_OLLAMA_MODEL=llama3.1:8b
 
 # Production (high accuracy)
-EXTRACTION_PROVIDER=gemini
+EXTRACTION_LLM_PROVIDER=gemini
 EXTRACTION_GEMINI_MODEL=gemini-1.5-pro
 
 # Production (cost-optimized)
-EXTRACTION_PROVIDER=gemini
-EXTRACTION_GEMINI_MODEL=gemini-1.5-flash
+EXTRACTION_LLM_PROVIDER=gemini
+EXTRACTION_GEMINI_MODEL=gemini-2.5-flash
 ```
 
 ## Provider Features Comparison

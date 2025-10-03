@@ -45,14 +45,61 @@ class GeminiProvider(LLMProvider):
 
         google_genai.configure(api_key=api_key)
 
-        # Get model name (allow override from settings)
-        self.model_name = getattr(settings.extraction, 'gemini_model', 'gemini-1.5-flash')
+        # Get model name from settings
+        self.model_name = settings.extraction.gemini_model
         self.model = google_genai.GenerativeModel(
             self.model_name,
             generation_config={
                 "response_mime_type": "application/json"
             }
         )
+
+    def _convert_schema_for_gemini(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert JSON Schema to Gemini-compatible format
+
+        Args:
+            schema: JSON Schema dictionary
+
+        Returns:
+            Gemini-compatible schema
+        """
+        if not schema:
+            return schema
+
+        result = {}
+
+        for key, value in schema.items():
+            # Skip $schema field
+            if key == "$schema":
+                continue
+
+            # Handle type field with array notation
+            if key == "type" and isinstance(value, list):
+                # Convert ["string", "null"] to string with nullable
+                non_null_types = [t for t in value if t != "null"]
+                if "null" in value:
+                    result["nullable"] = True
+                if len(non_null_types) == 1:
+                    result["type"] = non_null_types[0]
+                else:
+                    # Multiple non-null types not supported by Gemini
+                    result["type"] = non_null_types[0]
+            # Recursively process nested schemas
+            elif key == "properties" and isinstance(value, dict):
+                result["properties"] = {
+                    prop_name: self._convert_schema_for_gemini(prop_value)
+                    for prop_name, prop_value in value.items()
+                }
+            elif key == "items" and isinstance(value, dict):
+                result["items"] = self._convert_schema_for_gemini(value)
+            # Keep description but Gemini ignores it
+            elif key == "description":
+                continue  # Skip descriptions as Gemini doesn't use them
+            else:
+                result[key] = value
+
+        return result
 
     def generate(self,
                  prompt: str,
@@ -75,13 +122,18 @@ class GeminiProvider(LLMProvider):
         generation_config = {
             "temperature": options.get("temperature", self.settings.extraction.temperature),
             "top_p": options.get("top_p", self.settings.extraction.top_p),
-            "max_output_tokens": options.get("max_tokens", self.settings.extraction.max_tokens),
             "response_mime_type": "application/json"
         }
 
+        # Only add max_output_tokens if provided (let Gemini use its default otherwise)
+        if options.get("max_tokens"):
+            generation_config["max_output_tokens"] = options["max_tokens"]
+
         # Add JSON schema if provided
         if schema:
-            generation_config["response_schema"] = schema
+            # Convert JSON Schema to Gemini-compatible format
+            gemini_schema = self._convert_schema_for_gemini(schema)
+            generation_config["response_schema"] = gemini_schema
 
         # Combine system prompt and user prompt
         full_prompt = []
@@ -97,8 +149,35 @@ class GeminiProvider(LLMProvider):
                 generation_config=generation_config
             )
 
-            # Extract content
-            content = response.text
+            # Extract content - handle different response formats
+            try:
+                # Try the simple text accessor first
+                content = response.text
+            except Exception as e:
+                # Fall back to manual extraction from candidates
+                if response.candidates and len(response.candidates) > 0:
+                    # Try to get text from the first candidate
+                    candidate = response.candidates[0]
+
+                    # Check finish reason
+                    finish_reason_name = candidate.finish_reason.name if hasattr(candidate.finish_reason, 'name') else str(candidate.finish_reason)
+
+                    if finish_reason_name == "MAX_TOKENS" or candidate.finish_reason == 4:
+                        # Hit max tokens limit - try to get partial content
+                        if candidate.content and candidate.content.parts and len(candidate.content.parts) > 0:
+                            content = candidate.content.parts[0].text
+                            logger.warning(f"Gemini hit max_tokens limit, returning partial response")
+                        else:
+                            # No partial content available, return empty JSON structure
+                            logger.warning(f"Gemini hit max_tokens with no partial content, returning empty structure")
+                            content = "{}"
+                    elif candidate.content and candidate.content.parts:
+                        content = candidate.content.parts[0].text
+                    else:
+                        logger.error(f"No content in candidate: finish_reason={finish_reason_name}")
+                        raise ValueError(f"Gemini returned no content (finish_reason={finish_reason_name})")
+                else:
+                    raise ValueError("Gemini returned no valid response")
 
             # Count tokens
             input_tokens = self.count_tokens(combined_prompt)
@@ -136,7 +215,7 @@ class GeminiProvider(LLMProvider):
                 "prompt": combined_prompt[:1000] + "..." if len(combined_prompt) > 1000 else combined_prompt,
                 "temperature": generation_config["temperature"],
                 "top_p": generation_config["top_p"],
-                "max_tokens": generation_config["max_output_tokens"],
+                "max_tokens": generation_config.get("max_output_tokens", "default"),
                 "provider": self.provider_name,
                 "cost_estimate": cost_estimate
             }
