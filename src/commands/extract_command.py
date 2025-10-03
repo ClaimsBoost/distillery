@@ -347,12 +347,45 @@ class ExtractCommand:
                     datetime.now()
                 ))
                 conn.commit()
-                
+
                 if cur.rowcount > 0:
                     logger.info(f"Stored extraction for {target} in database (ID: {extraction_id})")
+
+                    # Update domain status if this is a law_firm_confirmation
+                    if extraction_type == 'law_firm_confirmation' and is_domain:
+                        is_law_firm = clean_result.get('is_law_firm', False)
+                        is_pi_firm = clean_result.get('is_personal_injury_firm', False)
+
+                        # Check if both are true (handle string or boolean values)
+                        if (str(is_law_firm).lower() == 'true' and
+                            str(is_pi_firm).lower() == 'true'):
+
+                            # Update crawl_status to 'verified'
+                            cur.execute("""
+                                UPDATE domains
+                                SET crawl_status = 'verified',
+                                    updated_at = %s
+                                WHERE domain = %s
+                            """, (datetime.now(), domain))
+                            conn.commit()
+                            logger.info(f"Updated {domain} crawl_status to 'verified' (qualified PI law firm)")
+
+                        # If either is false, mark as failed_verification
+                        elif (str(is_law_firm).lower() == 'false' or
+                              str(is_pi_firm).lower() == 'false'):
+
+                            # Update crawl_status to 'failed_verification'
+                            cur.execute("""
+                                UPDATE domains
+                                SET crawl_status = 'failed_verification',
+                                    updated_at = %s
+                                WHERE domain = %s
+                            """, (datetime.now(), domain))
+                            conn.commit()
+                            logger.info(f"Updated {domain} crawl_status to 'failed_verification' (not qualified: is_law_firm={is_law_firm}, is_pi_firm={is_pi_firm})")
                 else:
                     logger.warning(f"Extraction already exists for {target}")
-                    
+
         except Exception as e:
             logger.error(f"Failed to store extraction: {str(e)}")
             # Don't fail the whole extraction if storage fails
