@@ -51,12 +51,17 @@ class VectorStoreSettings(BaseSettings):
 
 class ExtractionSettings(BaseSettings):
     """Extraction pipeline configuration settings."""
-    
+
+    # Provider settings
+    provider: str = Field('ollama', env='EXTRACTION_PROVIDER')  # ollama or gemini
+    gemini_model: str = Field('gemini-1.5-flash', env='EXTRACTION_GEMINI_MODEL')
+    gemini_api_key: Optional[str] = Field(None, env='EXTRACTION_GEMINI_API_KEY')
+
     # Chunking parameters
     chunk_size: int = Field(5000, env='EXTRACTION_CHUNK_SIZE')
     chunk_overlap: int = Field(500, env='EXTRACTION_CHUNK_OVERLAP')
-    
-    # Model parameters
+
+    # Model parameters (for Ollama)
     model_type: str = Field(..., env='EXTRACTION_MODEL_TYPE')  # Required, no default
     embedder_type: str = Field(..., env='EXTRACTION_EMBEDDER_TYPE')
     temperature: float = Field(0.2, env='EXTRACTION_TEMPERATURE')
@@ -64,19 +69,20 @@ class ExtractionSettings(BaseSettings):
     max_tokens: int = Field(2048, env='EXTRACTION_MAX_TOKENS')
     seed: int = Field(42, env='EXTRACTION_SEED')
     num_ctx: int = Field(8192, env='EXTRACTION_NUM_CTX')
-    
+
     # Retrieval parameters
     k_chunks: int = Field(3, env='EXTRACTION_K_CHUNKS')
     similarity_threshold: float = Field(0.7, env='EXTRACTION_SIMILARITY_THRESHOLD')
-    
+
     # Processing parameters
     batch_size: int = Field(5, env='EXTRACTION_BATCH_SIZE')
     retry_attempts: int = Field(3, env='EXTRACTION_RETRY_ATTEMPTS')
-    
+
     # Feature flags
     use_reranking: bool = Field(False, env='EXTRACTION_USE_RERANKING')
     use_query_expansion: bool = Field(False, env='EXTRACTION_USE_QUERY_EXPANSION')
     extract_confidence_scores: bool = Field(True, env='EXTRACTION_CONFIDENCE_SCORES')
+    track_costs: bool = Field(True, env='EXTRACTION_TRACK_COSTS')
     
     @field_validator('chunk_overlap')
     @classmethod
@@ -116,12 +122,23 @@ class ExtractionSettings(BaseSettings):
 
 class OllamaSettings(BaseSettings):
     """Ollama API configuration settings."""
-    
+
     base_url: str = Field('http://localhost:11434', env='OLLAMA_BASE_URL')
     timeout: int = Field(30000, env='OLLAMA_TIMEOUT')
-    
+
     class Config:
         env_prefix = 'OLLAMA_'
+
+
+class GeminiSettings(BaseSettings):
+    """Google Gemini API configuration settings."""
+
+    api_key: Optional[str] = Field(None, env='GEMINI_API_KEY')
+    model: str = Field('gemini-1.5-flash', env='GEMINI_MODEL')
+    batch_size: int = Field(10, env='GEMINI_BATCH_SIZE')  # For batch processing
+
+    class Config:
+        env_prefix = 'GEMINI_'
 
 
 class LoggingSettings(BaseSettings):
@@ -179,6 +196,7 @@ class Settings(BaseSettings):
     vector_store: VectorStoreSettings = Field(default_factory=VectorStoreSettings)
     extraction: ExtractionSettings = Field(default_factory=ExtractionSettings)
     ollama: OllamaSettings = Field(default_factory=OllamaSettings)
+    gemini: GeminiSettings = Field(default_factory=GeminiSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     performance: PerformanceSettings = Field(default_factory=PerformanceSettings)
     paths: PathSettings = Field(default_factory=PathSettings)

@@ -21,6 +21,7 @@ from ..core.settings import get_settings, Settings
 from ..core.prompts import PromptTemplates
 from ..database import create_vector_store, get_database_connection
 from ..embed.chunker import DocumentChunker
+from ..llm import get_llm_provider, LLMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,8 @@ logger = logging.getLogger(__name__)
 class BaseExtractor(ABC):
     """Base class with shared LLM, schema support, and API request storage"""
 
-    # Single shared LLM instance for all extractors
-    _shared_llm: ClassVar[Optional[OllamaLLM]] = None
+    # Single shared LLM provider instance for all extractors
+    _shared_provider: ClassVar[Optional[LLMProvider]] = None
 
     # Cache for config modules
     _config_cache: ClassVar[Dict[str, Any]] = {}
@@ -55,8 +56,8 @@ class BaseExtractor(ABC):
         else:
             self.supabase = self.db_conn.get_supabase_client()
 
-        # Initialize or get shared LLM instance
-        self.llm = self._get_or_create_llm()
+        # Initialize or get shared LLM provider instance
+        self.provider = self._get_or_create_provider()
 
         # Initialize embeddings (these are lightweight, ok to have per instance)
         self.embeddings = OllamaEmbeddings(
@@ -86,25 +87,19 @@ class BaseExtractor(ABC):
 
         logger.info(f"{self.__class__.__name__} initialized with model: {self.settings.extraction.model_type}")
 
-    def _get_or_create_llm(self) -> OllamaLLM:
+    def _get_or_create_provider(self) -> LLMProvider:
         """
-        Get or create the single shared LLM instance
+        Get or create the single shared LLM provider instance
 
         Returns:
-            Shared OllamaLLM instance
+            Shared LLMProvider instance
         """
         # Create single shared instance if it doesn't exist
-        if BaseExtractor._shared_llm is None:
-            BaseExtractor._shared_llm = OllamaLLM(
-                model=self.settings.extraction.model_type,
-                base_url=self.settings.ollama.base_url,
-                # Don't set variable parameters here - they'll be set per request
-                # Only set connection-level settings
-                format="json"  # All extractors use JSON format
-            )
-            logger.info(f"Created single shared LLM instance for model: {self.settings.extraction.model_type}")
+        if BaseExtractor._shared_provider is None:
+            BaseExtractor._shared_provider = get_llm_provider(self.settings)
+            logger.info(f"Created single shared LLM provider: {BaseExtractor._shared_provider.provider_name}")
 
-        return BaseExtractor._shared_llm
+        return BaseExtractor._shared_provider
 
     def _get_num_predict(self) -> int:
         """
@@ -183,17 +178,20 @@ class BaseExtractor(ABC):
             logger.error(f"Failed to load prompt: {str(e)}")
             return {"error": f"No prompt file for {self.extraction_name}"}
 
-        # Call Ollama API with schema
-        response_data, api_payload = self._call_ollama_api(prompt)
+        # Call LLM provider with schema
+        llm_response, api_payload = self._call_llm_provider(prompt)
 
-        if "response" in response_data:
-            result = self._parse_json_result(response_data["response"])
+        if llm_response and llm_response.content:
+            result = self._parse_json_result(llm_response.content)
             if result:
                 # Add the API request to the result for storage
                 result['_api_request'] = api_payload
                 # Add chunk IDs if provided in metadata
                 if metadata and 'chunk_ids' in metadata:
                     result['chunk_ids'] = metadata['chunk_ids']
+                # Add cost estimate if available
+                if llm_response.cost_estimate:
+                    result['_cost_estimate'] = llm_response.cost_estimate
                 return result
 
         return {"error": "Failed to extract data"}
@@ -322,72 +320,61 @@ class BaseExtractor(ABC):
             logger.error(f"Failed to load schema: {str(e)}")
             return None
 
-    def _call_ollama_api(self, prompt: str, system_prompt: str = "") -> tuple[Dict[str, Any], Dict[str, Any]]:
+    def _call_llm_provider(self, prompt: str, system_prompt: str = "") -> tuple[Any, Dict[str, Any]]:
         """
-        Call Ollama API directly with schema support and per-request parameters
+        Call LLM provider with schema support and per-request parameters
 
         Args:
             prompt: The extraction prompt
             system_prompt: System prompt
 
         Returns:
-            Tuple of (response_data, request_payload)
+            Tuple of (LLMResponse, request_payload)
         """
-        ollama_url = f"{self.settings.ollama.base_url}/api/generate"
+        # Get provider
+        provider = self._get_or_create_provider()
 
         # Load schema for this extractor
         schema = self._load_extraction_schema()
 
-        # Build options dict with ALL parameters set per request
+        # Build options dict with parameters
         options = {
             "temperature": self.settings.extraction.temperature,
             "top_p": self.settings.extraction.top_p,
             "seed": self.settings.extraction.seed,
-            "num_ctx": self.settings.extraction.num_ctx,
-            "num_predict": self._get_num_predict()  # Varies by extractor type
+            "max_tokens": self._get_num_predict()  # Varies by extractor type
         }
 
-        # Build payload
-        payload = {
-            "model": self.settings.extraction.model_type,
-            "prompt": prompt,
-            "system": system_prompt if system_prompt else self.prompts.get_system_prompt(),
-            "format": schema if schema else "json",  # Use schema if available
-            "options": options,
-            "stream": False,
-            "keep_alive": 0  # Reset context after each request
-        }
-
-        # Store timestamp
-        payload['_request_timestamp'] = datetime.now().isoformat()
+        # Add provider-specific options
+        if provider.provider_name == "ollama":
+            options["num_ctx"] = self.settings.extraction.num_ctx
 
         # Log what extractor and output size is being used
-        logger.debug(f"{self.extraction_name} using num_predict={options['num_predict']} tokens")
+        logger.debug(f"{self.extraction_name} using provider={provider.provider_name}, max_tokens={options['max_tokens']}")
 
         try:
-            response = requests.post(ollama_url, json=payload, timeout=120)
-            response.raise_for_status()
-            response_data = response.json()
+            # Call provider with appropriate parameters
+            llm_response, request_info = provider.generate(
+                prompt=prompt,
+                system_prompt=system_prompt or self.prompts.get_system_prompt(),
+                schema=schema,
+                options=options
+            )
 
-            # Log token usage if available
-            if 'prompt_eval_count' in response_data and 'eval_count' in response_data:
-                logger.info(f"[{self.extraction_name}] Token usage - Input: {response_data['prompt_eval_count']}, "
-                           f"Output: {response_data['eval_count']}, "
-                           f"Total: {response_data['prompt_eval_count'] + response_data['eval_count']}")
+            # Log token usage and cost if available
+            if llm_response.tokens_used:
+                logger.info(f"[{self.extraction_name}] Token usage - Input: {llm_response.tokens_used.get('input', 0)}, "
+                           f"Output: {llm_response.tokens_used.get('output', 0)}, "
+                           f"Total: {sum(llm_response.tokens_used.values())}")
 
-            return response_data, payload
+            if llm_response.cost_estimate and self.settings.extraction.track_costs:
+                logger.info(f"[{self.extraction_name}] Estimated cost: ${llm_response.cost_estimate:.6f}")
+
+            return llm_response, request_info
 
         except Exception as e:
-            logger.error(f"Ollama API call failed: {str(e)}")
-            # Fall back to using shared LLM with invoke
-            # Note: When using invoke, we should also pass parameters
-            full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
-
-            # For fallback, we could potentially use the shared LLM with custom parameters
-            # but LangChain's invoke doesn't easily support per-call parameter override
-            # So we'll just use it as-is for now
-            response = self.llm.invoke(full_prompt)
-            return {"response": response}, payload
+            logger.error(f"LLM provider call failed: {str(e)}")
+            raise
 
 
     def _search_relevant_chunks(self, query: str, doc_or_domain: str, k: int = 3, boost_field: Optional[str] = None) -> list:
