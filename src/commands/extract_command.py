@@ -8,6 +8,9 @@ import logging
 import uuid
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+import time
 
 from ..core.settings import get_settings, Settings
 from ..extract import (
@@ -56,9 +59,14 @@ class ExtractCommand:
         }
         # Get database connection for storing results
         self.db_conn = get_database_connection()
+
+        # Thread safety for parallel processing
+        self.db_lock = threading.Lock()
+        self.progress_lock = threading.Lock()
+        self.completed_count = 0
     
     def execute(self, targets: List[str], extraction_type: str,
-                is_domain: bool = False) -> Dict[str, Any]:
+                is_domain: bool = False, force: bool = False, workers: int = 1) -> Dict[str, Any]:
         """
         Execute extraction for multiple targets
 
@@ -66,6 +74,8 @@ class ExtractCommand:
             targets: List of document IDs or domain names
             extraction_type: Type of extraction (specific type or 'all')
             is_domain: Whether targets are domains or documents
+            force: Force extraction even if data already exists
+            workers: Number of parallel workers
 
         Returns:
             Extraction results
@@ -75,10 +85,14 @@ class ExtractCommand:
         # Handle 'all' extraction type
         if extraction_type == 'all':
             logger.info(f"Running ALL extractors on {len(targets)} {'domains' if is_domain else 'documents'}")
+            if force:
+                logger.info("Force mode enabled - will overwrite existing extractions")
             logger.info(f"{'='*60}")
-            return self._execute_all_extractors(targets, is_domain)
+            return self._execute_all_extractors(targets, is_domain, force)
 
         logger.info(f"Extracting {extraction_type} from {len(targets)} {'domains' if is_domain else 'documents'}")
+        if workers > 1:
+            logger.info(f"Using {workers} parallel workers")
         logger.info(f"{'='*60}")
 
         # Get the appropriate extractor
@@ -88,10 +102,29 @@ class ExtractCommand:
 
         extractor = self.extractors[extraction_type]
 
+        # Use parallel processing if workers > 1
+        if workers > 1:
+            return self._execute_parallel(
+                targets, extraction_type, extractor, is_domain, force, workers
+            )
+
+        # Otherwise use sequential processing (existing code)
         all_results = []
 
         for i, target in enumerate(targets, 1):
             logger.info(f"[{i}/{len(targets)}] Processing target: {target}")
+
+            # Check if extraction already exists (unless forced)
+            if not force and is_domain and self._extraction_exists(target, extraction_type):
+                logger.info(f"Skipping {target} - {extraction_type} extraction already exists")
+                print(f"[{i}/{len(targets)}] Skipping {target} (already extracted)...")
+                all_results.append({
+                    'target': target,
+                    'type': 'domain',
+                    'data': {'skipped': True, 'reason': 'Already extracted'}
+                })
+                continue
+
             print(f"[{i}/{len(targets)}] Processing {target}...")
 
             if is_domain:
@@ -131,12 +164,150 @@ class ExtractCommand:
             }
         }
 
-    def execute_all(self, extraction_type: str) -> Dict[str, Any]:
+    def _execute_parallel(self, targets: List[str], extraction_type: str,
+                         extractor: Any, is_domain: bool, force: bool,
+                         workers: int) -> Dict[str, Any]:
+        """
+        Execute extraction in parallel using multiple workers
+
+        Args:
+            targets: List of targets to process
+            extraction_type: Type of extraction
+            extractor: The extractor instance to use
+            is_domain: Whether targets are domains
+            force: Force extraction even if exists
+            workers: Number of parallel workers
+
+        Returns:
+            Extraction results
+        """
+        all_results = []
+        start_time = time.time()
+        total_targets = len(targets)
+        self.completed_count = 0
+
+        def process_single_target(target_info):
+            """Process a single target"""
+            idx, target = target_info
+
+            try:
+                # Check if extraction already exists (unless forced)
+                if not force and is_domain and self._extraction_exists(target, extraction_type):
+                    with self.progress_lock:
+                        self.completed_count += 1
+                        print(f"[{self.completed_count}/{total_targets}] Skipping {target} (already extracted)...")
+
+                    return {
+                        'target': target,
+                        'type': 'domain',
+                        'data': {'skipped': True, 'reason': 'Already extracted'}
+                    }
+
+                # Perform extraction
+                if is_domain:
+                    result = extractor.extract_from_domain(target)
+                else:
+                    result = extractor.extract_from_document(target)
+
+                # Store successful extraction in database (thread-safe)
+                if result and not result.get('error'):
+                    with self.db_lock:
+                        self._store_extraction(target, extraction_type, result, is_domain)
+
+                # Update progress
+                with self.progress_lock:
+                    self.completed_count += 1
+                    elapsed = time.time() - start_time
+                    rate = self.completed_count / elapsed if elapsed > 0 else 0
+                    remaining = (total_targets - self.completed_count) / rate if rate > 0 else 0
+
+                    status = "✓" if result and not result.get('error') else "✗"
+                    print(f"[{self.completed_count}/{total_targets}] {status} {target} "
+                          f"({rate:.1f}/s, ~{remaining/60:.1f}m remaining)")
+
+                return {
+                    'target': target,
+                    'type': 'domain' if is_domain else 'document',
+                    'data': result
+                }
+
+            except Exception as e:
+                logger.error(f"Error processing {target}: {str(e)}")
+                with self.progress_lock:
+                    self.completed_count += 1
+                    print(f"[{self.completed_count}/{total_targets}] ✗ {target} (error)")
+
+                return {
+                    'target': target,
+                    'type': 'domain' if is_domain else 'document',
+                    'data': {'error': str(e)}
+                }
+
+        # Process targets in parallel
+        print(f"\nProcessing {total_targets} targets with {workers} workers...")
+        print(f"{'='*60}\n")
+
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            # Submit all tasks
+            futures = {
+                executor.submit(process_single_target, (i, target)): target
+                for i, target in enumerate(targets, 1)
+            }
+
+            # Collect results as they complete
+            for future in as_completed(futures):
+                try:
+                    result = future.result(timeout=30)  # 30 second timeout per domain
+                    all_results.append(result)
+                except Exception as e:
+                    target = futures[future]
+                    logger.error(f"Failed to process {target}: {str(e)}")
+                    all_results.append({
+                        'target': target,
+                        'type': 'domain' if is_domain else 'document',
+                        'data': {'error': str(e)}
+                    })
+
+        # Calculate final statistics
+        elapsed_time = time.time() - start_time
+        successful = sum(1 for r in all_results if r.get('data') and not r['data'].get('error') and not r['data'].get('skipped'))
+        skipped = sum(1 for r in all_results if r.get('data', {}).get('skipped'))
+        failed = sum(1 for r in all_results if r.get('data', {}).get('error'))
+
+        print(f"\n{'='*60}")
+        print(f"Completed {total_targets} targets in {elapsed_time/60:.1f} minutes")
+        print(f"Rate: {total_targets/elapsed_time:.1f} targets/second")
+        print(f"Successful: {successful}, Skipped: {skipped}, Failed: {failed}")
+        print(f"{'='*60}\n")
+
+        return {
+            'extraction_type': extraction_type,
+            'targets': targets,
+            'target_type': 'domain' if is_domain else 'document',
+            'timestamp': datetime.now().isoformat(),
+            'results': all_results,
+            'summary': {
+                'total_targets': total_targets,
+                'successful': successful,
+                'skipped': skipped,
+                'failed': failed,
+                'elapsed_time': elapsed_time,
+                'workers_used': workers
+            },
+            'config': {
+                'provider': self.settings.extraction.llm_provider,
+                'model': self.settings.extraction.ollama_model if self.settings.extraction.llm_provider == 'ollama' else self.settings.extraction.gemini_model,
+                'temperature': self.settings.extraction.temperature
+            }
+        }
+
+    def execute_all(self, extraction_type: str, force: bool = False, workers: int = 1) -> Dict[str, Any]:
         """
         Execute extraction for all domains with embeddings
 
         Args:
             extraction_type: Type of extraction (specific type or 'all')
+            force: Force extraction even if data already exists
 
         Returns:
             Extraction results
@@ -157,16 +328,46 @@ class ExtractCommand:
             cur = conn.cursor()
 
             try:
-                # Get all domains that have embeddings
-                logger.info("Getting domains with embeddings...")
-                cur.execute("""
-                    SELECT DISTINCT domain
-                    FROM document_vectors
-                    ORDER BY domain
-                """)
+                # Get domains based on force flag
+                if force:
+                    # Get all domains that have embeddings
+                    logger.info("Getting all domains with embeddings (force mode)...")
+                    cur.execute("""
+                        SELECT DISTINCT domain
+                        FROM document_vectors
+                        ORDER BY domain
+                    """)
+                else:
+                    # Get only domains without existing extractions
+                    logger.info(f"Getting domains without existing {extraction_type} extractions...")
+
+                    # Build query based on extraction type
+                    if extraction_type == 'all':
+                        # For 'all', get domains that don't have ALL extraction types
+                        # This is complex, so for now just get all domains
+                        cur.execute("""
+                            SELECT DISTINCT domain
+                            FROM document_vectors
+                            ORDER BY domain
+                        """)
+                    else:
+                        # Get domains that don't have this specific extraction type
+                        cur.execute("""
+                            SELECT DISTINCT dv.domain
+                            FROM document_vectors dv
+                            LEFT JOIN domain_extractions de
+                                ON dv.domain = de.domain
+                                AND de.extraction_name = %s
+                            WHERE de.domain IS NULL
+                            ORDER BY dv.domain
+                        """, (extraction_type,))
+
                 domains = [row[0] for row in cur.fetchall()]
 
-                logger.info(f"Found {len(domains)} domains with embeddings")
+                if force:
+                    logger.info(f"Found {len(domains)} domains with embeddings (processing all)")
+                else:
+                    logger.info(f"Found {len(domains)} domains needing {extraction_type} extraction")
             finally:
                 cur.close()
                 conn.close()
@@ -182,7 +383,7 @@ class ExtractCommand:
                 }
 
             # Execute extraction on all domains
-            return self.execute(domains, extraction_type, is_domain=True)
+            return self.execute(domains, extraction_type, is_domain=True, force=force, workers=workers)
 
         except Exception as e:
             logger.error(f"Execute all failed: {str(e)}")
@@ -192,13 +393,14 @@ class ExtractCommand:
                 'successful': 0
             }
     
-    def _execute_all_extractors(self, targets: List[str], is_domain: bool) -> Dict[str, Any]:
+    def _execute_all_extractors(self, targets: List[str], is_domain: bool, force: bool = False) -> Dict[str, Any]:
         """
         Execute all extractors for the given targets
 
         Args:
             targets: List of document IDs or domain names
             is_domain: Whether targets are domains or documents
+            force: Force extraction even if data already exists
 
         Returns:
             Combined extraction results
@@ -221,6 +423,12 @@ class ExtractCommand:
             }
 
             for extraction_type in extractor_types:
+                # Check if extraction already exists (unless forced)
+                if not force and is_domain and self._extraction_exists(target, extraction_type):
+                    logger.info(f"  Skipping {extraction_type} - already exists")
+                    target_results['extractions'][extraction_type] = {'skipped': True}
+                    continue
+
                 logger.info(f"  Running {extraction_type}...")
                 extractor = self.extractors[extraction_type]
 
@@ -297,6 +505,35 @@ class ExtractCommand:
         """
         print(json.dumps(results, indent=2))
     
+    def _extraction_exists(self, domain: str, extraction_type: str) -> bool:
+        """
+        Check if an extraction already exists for a domain
+
+        Args:
+            domain: Domain name
+            extraction_type: Type of extraction
+
+        Returns:
+            True if extraction exists, False otherwise
+        """
+        try:
+            with self.db_conn.get_postgres_connection() as (conn, cur):
+                cur.execute("""
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM domain_extractions
+                        WHERE domain = %s
+                        AND extraction_name = %s
+                        LIMIT 1
+                    )
+                """, (domain, extraction_type))
+
+                return cur.fetchone()[0]
+        except Exception as e:
+            logger.warning(f"Error checking for existing extraction: {str(e)}")
+            # If we can't check, assume it doesn't exist to avoid blocking extraction
+            return False
+
     def _store_extraction(self, target: str, extraction_type: str, 
                          result: Dict[str, Any], is_domain: bool):
         """

@@ -208,7 +208,11 @@ class Application:
 
             # Handle --all flag
             if hasattr(args, 'all') and args.all:
-                results = command.execute_all(extraction_type=args.type)
+                results = command.execute_all(
+                    extraction_type=args.type,
+                    force=getattr(args, 'force', False),
+                    workers=getattr(args, 'workers', 1)
+                )
             else:
                 if not args.targets:
                     print("\n✗ Error: targets are required when --all is not specified")
@@ -216,7 +220,9 @@ class Application:
                 results = command.execute(
                     args.targets,
                     extraction_type=args.type,
-                    is_domain=args.domain
+                    is_domain=args.domain,
+                    force=getattr(args, 'force', False),
+                    workers=getattr(args, 'workers', 1)
                 )
             command.display_results(results)
 
@@ -289,6 +295,10 @@ Environment:
     extract_parser.add_argument('--domain', action='store_true', help='Targets are domains')
     extract_parser.add_argument('--all', action='store_true',
                                help='Extract from all domains with embeddings')
+    extract_parser.add_argument('--force', action='store_true',
+                               help='Force extraction even if data already exists')
+    extract_parser.add_argument('--workers', type=int, default=1,
+                               help='Number of parallel workers (default: 1, recommended: 10-20 for Gemini)')
     
     # Test command
     test_parser = subparsers.add_parser('test-domain', help='Test extraction for a domain')
