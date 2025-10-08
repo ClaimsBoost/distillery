@@ -73,7 +73,6 @@ ON document_vectors(created_at);
 CREATE TABLE IF NOT EXISTS domain_statistics (
   domain TEXT PRIMARY KEY,
   domain_id VARCHAR(12),
-  document_count INTEGER DEFAULT 0,
   chunk_count INTEGER DEFAULT 0,
   total_size_bytes BIGINT DEFAULT 0,
   embedding_model TEXT DEFAULT 'nomic-embed-text',
